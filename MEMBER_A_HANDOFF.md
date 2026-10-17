@@ -10,7 +10,7 @@ jac install --dev
 jac start main.jac --no-client
 ```
 
-The current entrypoint is API-only. Member C's client modules remain placeholders. The API normally runs on port 8000; use the port actually reported at startup if another server already occupies it. With the byLLM/serve dependencies installed, the full server exposes `/docs`, `/openapi.json` and `/healthz`. The earlier minimal fallback exposed `/functions` and `/walkers`; those discovery paths are not available on the full server. Function POST routes and the response envelope are unchanged.
+The integration entrypoint registers all ten APIs and renders Member C's UI at `/`. The UI still uses its browser-local demo gateway; it is not yet an API client. Start both with `jac start main.jac`, or use `--no-client` for API-only checks. The default port is 8000; use the port actually reported at startup. With the byLLM/serve dependencies installed, the full server exposes `/docs`, `/openapi.json` and `/healthz`. The earlier minimal fallback exposed `/functions` and `/walkers`; those discovery paths are not available on the full server. Function POST routes and the response envelope are unchanged.
 
 Configure `MONGODB_URI` in local `.env`, `MONGODB_DB`, and a `FIXORA_ACCESS_TOKEN` of at least 16 characters. Process environment overrides `.env`. The application reads the file without exporting its contents into the process. A local access token was generated during backend setup; retrieve it directly from your own `.env`, without sharing credentials in source control. Each teammate needs their own local environment settings. The examples contain no actual secrets.
 

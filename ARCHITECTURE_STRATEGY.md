@@ -1,14 +1,16 @@
 # Fixora AI — Architecture and Delivery Strategy
 
-Status: implementation plan; no application implementation included.  
+Status: implemented backend and agents, with a browser-local UI demo in the same entrypoint; gateway-to-API integration remains pending. See DEVELOPMENT.md.
 Prepared: 17 October 2026.  
 Team: three members. Time budget: six hours from implementation kickoff.  
-Development baseline: user-reported `jac 0.34.6 (Linux x86_64)`; shared across all three members.  
+Integration baseline: `jac 0.34.6 (Linux x86_64)`, matching `.jac-version` and `jac.toml`. Member C originally validated its UI with 0.34.13.
 Persistent database: MongoDB. Hosting target: JacHammer.
+
+**UI scope update:** the latest user direction requires a customer chat and a separate shop dashboard, with the existing assessment features contained in those two primary views. Owner inspection/corrections, approval/rejection, and rule-based automatic decisions are now in scope. [UI_SPECIFICATION.md](UI_SPECIFICATION.md) supersedes older single-workspace and review-exclusion statements below. The interactive UI prototype is implemented; live backend integration remains pending. The original delivery schedule needs reassessment for the expanded scope.
 
 ## 1. Product objective
 
-Fixora helps an electronics shop turn an invoice, product photos, and a customer complaint into an evidence-backed warranty review and repair proposal. A technician confirms uncertain diagnoses and approves the next step. (No need to implement the human review process related functionalities for MVP)
+Fixora helps an electronics shop turn an invoice, product photos, and a customer complaint into an evidence-backed warranty review and repair proposal. Customers submit evidence and answer follow-up questions through chat. The shop inspects findings and records decisions through its dashboard; explicit shop rules may resolve sufficiently evidenced cases automatically.
 
 The demonstration must show more than successful extraction: conflicting or missing evidence must change the workflow. The application must retain cases and uploaded evidence after a server restart.
 
@@ -21,8 +23,8 @@ Default demonstration scope is one shop, laptops, three explicitly supported pro
 - Evaluate an explicit sample shop policy without inventing coverage terms.
 - Route missing or contradictory evidence to clarification or inspection.
 - Match a confirmed or provisional repair option to explicitly compatible stock.
-- Show a recommendation, supporting evidence, and technician action in one workspace.
-- Persist the case, files, assessment, and technician decision in MongoDB.
+- Show customer-facing findings in chat and the full recommendation, supporting evidence, and owner actions inside the shop dashboard.
+- Persist the case, conversation, files, assessment, and automatic/owner decisions in MongoDB.
 - Demonstrate the same workflow locally and on JacHammer, subject to an early hosting compatibility check.
 
 ## 2. Scope boundaries
@@ -37,8 +39,8 @@ Default demonstration scope is one shop, laptops, three explicitly supported pro
 | Inventory | Exact model-to-part compatibility, availability snapshot, seeded prices | Simple stock editor | Supplier APIs, purchasing, stock reservation/decrement, warehouse management |
 | Turnaround | Omit if needed for time | Rule-based range from labour, queue, and known part lead time | Training or claiming a predictive ML model |
 | Workflow | Jac coordinator, bounded specialist stages, conditional routing, evidence trail | Richer visual graph | Open-ended agent loops, separate agent microservices, message broker |
-| Interface | One case workspace and compact saved-case list | Print-friendly report | Separate customer/owner dashboards, native mobile app, notifications |
-| Access | Controlled demo access for hosted writes and files | Individual accounts | Production multi-tenancy, full roles/billing/SSO |
+| Interface | Customer chat and shop dashboard; embedded case details, evidence, findings and review controls | Print-friendly report | Additional primary screens, native mobile app, notifications |
+| Access | Customer-scoped case/file access and owner-only review; verified demo access during development | Full account-management experience | Production multi-tenancy, full roles/billing/SSO |
 | Persistence | MongoDB records and GridFS uploads | Export/import tools | A second business database, vector database, analytics platform |
 
 News checking, scam checking, IP matching, and model unlearning from the earlier brainstorming are outside Fixora's scope.
@@ -59,7 +61,7 @@ News checking, scam checking, IP matching, and model unlearning from the earlier
 
 Jac documents Python package imports on the server and React-style client components: [Python interoperability](https://www.jac-lang.org/reference/import-anything/) and [full-stack guide](https://www.jac-lang.org/build/fullstack-web/). byLLM documents structured outputs and image inputs: [byLLM reference](https://www.jac-lang.org/reference/plugins/byllm/).
 
-**Version boundary:** these are rolling documentation pages, not a verified reference for release 0.34.6. The user's Linux runtime has not been executed or validated while writing this plan. Confirm imports, client/server calls, uploads, and model configuration against the installed runtime before splitting implementation work. Record exact working dependency versions and share the same configuration across all three members. Do not upgrade the team runtime independently.
+**Version boundary:** these are rolling documentation pages. The integration branch is checked against the installed Linux Jac 0.34.6 runtime; Member C's original UI checks used 0.34.13. Keep `.jac-version`, `jac.toml` and the team toolchain aligned, and use the executable checks in DEVELOPMENT.md. Do not upgrade the team runtime independently.
 
 ### Persistence boundary
 
@@ -124,9 +126,10 @@ Every finding carries an evidence or policy reference. For a photo, use the uplo
 | `needs_inspection` | Evidence cannot establish a supported diagnosis or coverage condition | Record technician findings and reassess |
 | `awaiting_approval` | A complete proposal is ready | Approve proposal or request inspection |
 | `approved` | Technician approved the recorded proposal | View; reopen explicitly for a revised assessment |
+| `rejected` | The current request/proposal was rejected under an explicit rule or owner decision | View the reason and decision scope; submit clarification or explicitly reopen if permitted |
 | `failed` | A technical stage failed or expired | Retry safely; retain earlier evidence |
 
-Coverage is a separate field, not a case state: `potentially_covered`, `outside_period`, `excluded_by_policy`, or `needs_review`. A passed date check alone does not yield covered status. Missing policies yield `needs_review`; unavailable model output never becomes a warranty rejection.
+Coverage is a separate field, not a case state: `potentially_covered`, `outside_period`, `excluded_by_policy`, or `needs_review`. A passed date check alone does not yield covered status. Missing policies yield `needs_review`; unavailable model output never becomes a warranty rejection. Approval/rejection also records its scope (for example, warranty request versus repair proposal), automatic versus owner origin, and the supporting rule/reason. A warranty rejection does not automatically reject paid repair service. Exact automatic-decision predicates remain to be configured; unresolved cases go to owner review.
 
 ### Policy and estimate rules
 
@@ -180,10 +183,12 @@ These are application contracts, not claims about generated Jac HTTP paths. Memb
 | `start_assessment` | Case ID, expected revision, request ID | Assessment ID and current stage |
 | `advance_case` | Case ID, assessment ID, expected revision | Updated case/stage summary; one bounded stage maximum |
 | `get_case` | Case ID | Case view with evidence metadata and current assessment |
-| `list_cases` | Cursor/limit | Compact saved-case list |
+| `list_cases` | Cursor/limit and permitted filters | Customer's own saved conversations or owner complaint queue, scoped by server-verified identity |
+| `send_case_message` | Case ID, message, permitted attachment references, request ID | Persisted message and updated conversation summary; internal visibility is owner-only |
+| `get_case_messages` | Case ID, cursor/limit | Access-scoped conversation history; customer results exclude internal shop notes |
 | `get_evidence` | Case ID, evidence ID | Validated file response |
 | `record_inspection` | Case ID, expected revision, supported diagnosis, corrections, notes | New case revision requiring reassessment |
-| `review_case` | Case ID, assessment ID, expected revision, action, notes | Persisted decision or stale-state error |
+| `review_case` | Case ID, assessment ID, expected revision, approve/reject/request-information/request-inspection action, reason/notes | Persisted owner decision with customer-facing response, or stale-state error |
 
 Specialist result envelope: `stage`, `status`, `findings`, `evidence_refs`, `missing_fields`, `conflicts`, `next_action`, and optional `error`. Status is `completed`, `blocked`, or `failed`. Stage timestamps and assessment IDs are added by the coordinator.
 
@@ -199,7 +204,7 @@ Assign names to Member A/B/C at kickoff. Ownership is intended to avoid simultan
 | --- | --- | --- | --- | --- |
 | A — Platform and workflow | Jac coordinator, contracts, MongoDB repositories, server operations, deployment | `main.jac`, `jac.toml`, `shared/`, `workflow/`, `data/`, `server/` | Saved case and upload can be retrieved after restart; operation signatures published | Real stage transitions, revision protection, durable evidence, working hosted connection |
 | B — Evidence and business logic | Model extraction, visible observations, coverage rules, repair selection, seeds | `specialists/`, `rules/`, `fixtures/`, rule/extraction tests | Validated invoice and photo results using shared fixtures/contracts | Evidence references, null handling, contradiction checks, correct dates, exact compatibility and prices |
-| C — Product interface and demo | Jac UI, case list/workspace, uploads, stage activity, review controls, demo story | `ui/`, `assets/`, interface integration checks, demo notes | Workspace renders all three shared fixtures | Real backend connected, refresh restores state, corrections/review work, uncertainties are visible |
+| C — Product interface and demo | Customer chat, shop dashboard, uploads, stage activity, embedded case details/review, demo story | `ui/`, `assets/`, interface integration checks, demo notes | Both views render all three shared fixtures | Real backend connected, refresh restores conversations/cases, corrections/review work, uncertainties are visible |
 
 Member A owns deployment because hosting depends on data access and server configuration; Member C owns hosted UI smoke checks and demo rehearsal. Member B supplies realistic synthetic evidence and expected outcomes. All three integrate at hour two; integration is not a final-hour task.
 
@@ -224,7 +229,7 @@ data/                     # A: MongoDB/GridFS repositories and seed entry point
 specialists/              # B: document, vision, coverage, repair, resolution
 rules/                    # B: policy, date, compatibility and estimate rules
 fixtures/                 # B: synthetic policies, catalogue, expected outputs
-ui/                       # C: case workspace, intake, activity, findings, review
+ui/                       # C: customer chat, shop dashboard, embedded case details/findings/review
 assets/                   # C: small bundled visual assets
 tests/                    # Each member: checks for owned behavior
 ```
@@ -264,7 +269,7 @@ Do not assume application-local files survive hosting or that local `localhost` 
 
 ## 12. Access and data handling for the prototype
 
-Use synthetic invoices and product evidence for the hackathon. Keep hosted case operations, file retrieval, and technician actions behind a simple server-enforced demo access gate or verified platform protection. A hidden button is not access control. Full customer authentication is out of scope, but publicly writable technician actions are not an acceptable substitute.
+Use synthetic invoices and product evidence for the hackathon. Keep hosted case operations, file retrieval, and technician actions behind server-enforced access. Customers can read/write only their own cases and files; only the shop can inspect all complaints, read internal notes, or record owner decisions. A simple verified demo access mechanism may be used during development, but a shared customer credential cannot establish separate private customer ownership. A hidden button or role switch is not access control. Full account-management screens remain outside the two-view scope.
 
 Treat invoice text, descriptions, and image text as untrusted input. They cannot override the fixed policy, select arbitrary database queries, or instruct specialists to expose credentials. Validate every model result against contracts and the catalogue. Store concise findings and evidence references rather than hidden model reasoning. Log case/stage IDs and errors without invoice contents, secrets, or raw provider payloads.
 
