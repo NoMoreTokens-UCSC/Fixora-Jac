@@ -76,9 +76,13 @@ Current implementation boundaries are listed below. Legacy comment-only `ui/inta
 
 | Location | Responsibility |
 | --- | --- |
-| `ui/app.jac` | Two-view shell, saved conversation navigation, demo personas, search, theme/storage preferences, evidence/review dialogs, and confirmations. |
+| `ui/app.jac` | Dummy account session, role-specific two-view shell, saved conversation navigation, sign-out, search, theme/storage preferences, evidence/review dialogs, and confirmations. |
+| `ui/login.jac` | Customer/shop-owner login UI with visible dummy credentials, validation, password visibility, and role selection. No real authentication. |
+| `ui/login.css` | Reference-inspired split login layout; strictly monochrome tokens scoped to login. |
+| `ui/brand.jac` | User-provided light/dark brand mark, selected with the existing theme. |
+| `ui/motion.jac` | Framer Motion title entrance with reduced-motion support. |
 | `ui/chat.jac` | Customer timeline, composer, uploads, clarification, stage activity, and published result/decision cards. |
-| `ui/dashboard.jac` | Owner queue, filters/counts, embedded conversation/evidence/assessment/history tabs, and review controls. |
+| `ui/dashboard.jac` | Owner queue, filters/counts, embedded conversation/evidence/assessment/history tabs, customer-facing reply composer, and review controls. |
 | `ui/findings.jac` | Shared warranty, invoice, observation, repair/parts, cost and next-action displays. |
 | `ui/pieces.jac` | Status labels, copy feedback, stage activity, evidence previews, and empty states. |
 | `ui/models.jac` | Typed client records for cases, messages, evidence, assessments, and decisions. |

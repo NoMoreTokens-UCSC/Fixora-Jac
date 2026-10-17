@@ -176,6 +176,13 @@ async def:pub send_message(case_id: str, expected: int, text: str) -> CaseRecord
     }
     return await persist(c, expected);
 }
+async def:pub send_shop_message(case_id: str, expected: int, text: str) -> CaseRecord {
+    if not text.strip() { raise Exception("Write a reply before sending."); }
+    if len(text) > 4000 { raise Exception("Keep your reply to 4,000 characters or fewer."); }
+    c = await get_case(case_id);
+    c.messages = c.messages + [message("shop", text.strip())];
+    return await persist(c, expected);
+}
 async def:pub attach_evidence(case_id: str, expected: int, evidence: Evidence) -> CaseRecord {
     c = await get_case(case_id);
     limit = 1 if evidence.kind == "invoice" else 3;

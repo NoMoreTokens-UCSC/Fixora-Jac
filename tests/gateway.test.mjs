@@ -40,6 +40,22 @@ test('upload type and size validation runs before image decoding', async () => {
   await expect(g.read_image({type:'image/png',size:5242881}, 'photo', () => {})).rejects.toThrow('5 MB');
 });
 
+test('shop replies publish to customer chat without changing assessment or decisions', async () => {
+  let c = await g.get_case('sample-auto');
+  const revision = c.revision;
+  const decisionCount = c.decisions.length;
+  await expect(g.send_shop_message(c.id, revision, '   ')).rejects.toThrow('Write a reply');
+  c = await g.send_shop_message(c.id, revision, 'Please bring your charger when you visit.');
+  await g.refresh_cases();
+  c = await g.get_case(c.id);
+  expect(c.messages.at(-1).role).toBe('shop');
+  expect(c.messages.at(-1).internal).toBe(false);
+  expect(c.messages.at(-1).text).toBe('Please bring your charger when you visit.');
+  expect(c.revision).toBe(revision);
+  expect(c.status).toBe('approved');
+  expect(c.decisions.length).toBe(decisionCount);
+});
+
 test('upload-to-assessment-to-owner-decision survives reloading', async () => {
   const sample = await g.get_case('sample-complete');
   let c = await g.create_case('alex', 'Studio 14', 'complete');

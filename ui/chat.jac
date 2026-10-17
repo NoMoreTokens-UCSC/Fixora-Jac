@@ -5,6 +5,8 @@ import from ..components.ui.progress { Progress }
 import from .models { CaseRecord }
 import from .pieces { StatusPill, CopyButton, StageActivity, EvidenceStrip }
 import from .findings { Findings }
+import from .brand { BrandMark }
+import from .motion { TitleMotion }
 
 def:pub ChatWorkspace(c: CaseRecord, draft: str, busy: bool, upload_percent: int, error: str, onDraft: Callable[[str], None], onSend: Callable[[], None], onAction: Callable[[str], None], onFile: Callable[[any, str], None], onEvidence: Callable[[str], None], onRemove: Callable[[str], None]) -> JsxElement {
     has invoiceInput: Ref[HTMLInputElement] = Ref();
@@ -27,14 +29,14 @@ def:pub ChatWorkspace(c: CaseRecord, draft: str, busy: bool, upload_percent: int
     }
     return <div className="chat-layout">
         <div className="chat-thread">
-            <div className="chat-intro"><div className="eyebrow"><span className="violet-dot"/>YOUR LAPTOP, IN GOOD HANDS</div><h1>A little help for<br/>your laptop.</h1><p>Tell us what's wrong. We'll help you find the next step.</p></div>
+            <div className="chat-intro"><div className="eyebrow"><span className="violet-dot"/>YOUR LAPTOP, IN GOOD HANDS</div><h1><TitleMotion>A little help for{" "}<br/>your laptop.</TitleMotion></h1><p>Tell us what's wrong. We'll help you find the next step.</p></div>
             <div className="conversation-heading"><span>{c.title}</span><div className="conversation-heading-actions"><Button variant="ghost" size="sm" onClick={lambda { onAction("correct"); }}>Edit details</Button><StatusPill status={c.status}/></div></div>
             <div className="day-divider"><span>YOUR SAVED CONVERSATION</span></div>
             <div className="message-list" role="log" aria-label="Complaint conversation" aria-live="polite" aria-relevant="additions">
                 {for m in c.messages {
                     if not m.internal {
                         <article key={m.id} className={"message-row message-" + m.role}>
-                            <div className="message-avatar">{if m.role == "customer" { <span>{c.customer[:1]}</span> } elif m.role == "shop" { <ShieldCheck size={16}/> } else { <span className="f-symbol">f.</span> }}</div>
+                            <div className="message-avatar">{if m.role == "customer" { <span>{c.customer[:1]}</span> } elif m.role == "shop" { <ShieldCheck size={16}/> } else { <BrandMark/> }}</div>
                             <div className="message-body"><div className="message-name">{c.customer.split(" ")[0] if m.role == "customer" else ("Your shop" if m.role == "shop" else "Fixora assistant")}<time>{m.at[11:16]}</time></div><div className="message-bubble">{m.text}</div>{if m.role != "customer" { <CopyButton text={m.text}/> }}</div>
                         </article>
                     }
