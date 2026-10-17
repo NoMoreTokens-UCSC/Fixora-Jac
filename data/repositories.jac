@@ -79,7 +79,7 @@ def _create_case_record(description: str, claimed_model_id: str, submission_id: 
 }
 
 def _list_case_records(limit: int, cursor: str) -> dict[str, any] {
-    if limit < 1 or limit > 50 { raise FixoraError("VALIDATION_ERROR", "Limit must be between 1 and 50."); }
+    if type(limit) is not int or limit < 1 or limit > 50 { raise FixoraError("VALIDATION_ERROR", "Limit must be an integer between 1 and 50."); }
     query: dict[str, any] = {"shop_id": _get_settings().shop_id};
     if cursor {
         previous = _get_case_record(cursor);

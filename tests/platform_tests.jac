@@ -17,8 +17,20 @@ import from shared.validation { _new_id }
 import from workflow.coordinator { _set_test_handlers }
 import from server.cases { create_case, get_case, list_cases, update_case, start_assessment, advance_case }
 import from server.evidence { upload_evidence, get_evidence, remove_evidence }
+import from server.runtime_compat { _install_runtime_compat }
+import from jaclang.runtimelib.server { ModuleIntrospector }
 
 glob TOKEN: str = "fixora-unit-test-token-not-a-real-secret";
+
+test "HTTP introspection preserves numeric endpoint defaults" {
+    _install_runtime_compat();
+    # Unbound runtime method; isolate the checker's implicit-self assumption.
+    introspect: any = ModuleIntrospector.introspect_callable;
+    shape = introspect(None, list_cases);
+    fields = shape["parameters"];
+    assert type(fields["limit"]["default"]) is int and fields["limit"]["default"] == 20;
+    assert fields["cursor"]["default"] == "";
+}
 
 def _reset() {
     os.environ.pop("MONGODB_URI", None);
@@ -26,6 +38,7 @@ def _reset() {
     os.environ["MONGODB_DB"] = "fixora_unit_tests";
     os.environ["FIXORA_ACCESS_TOKEN"] = TOKEN;
     os.environ["FIXORA_SHOP_TIMEZONE"] = "Asia/Colombo";
+    os.environ["FIXORA_DEMO_MODE"] = "false";
     enable_gridfs_integration();
     # mongomock 4.3 predates PyMongo's client-side operation-timeout option.
     # Model that option on the TEST client; production GridFS remains unpatched.
@@ -115,6 +128,13 @@ test "invalid case IDs and empty descriptions are rejected" {
     assert not empty.ok and _get_database().cases.count_documents({}) == 0;
 }
 
+test "explicit null case limit is a validation error instead of an internal error" {
+    _reset();
+    invalid_limit: any = None;
+    result = list_cases(limit=invalid_limit, access_token=TOKEN);
+    assert not result.ok and result.error is not None and result.error.code == "VALIDATION_ERROR";
+}
+
 test "GridFS round trip and upload retry preserve one file" {
     _reset();
     item = _case();
@@ -167,8 +187,11 @@ test "start requires invoice and product evidence" {
     assert not result.ok and result.error is not None and result.error.code == "MISSING_EVIDENCE";
 }
 
+def _unimplemented(context: dict[str, any]) -> StageResult { raise NotImplementedError(); }
+
 test "missing specialist fails honestly and same stage can be retried" {
     _reset();
+    _set_test_handlers({"document": _unimplemented});
     item = _started_case();
     item = _advance(item);
     assert item["status"] == "failed";

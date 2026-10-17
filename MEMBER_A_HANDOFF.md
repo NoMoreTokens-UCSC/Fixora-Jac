@@ -10,7 +10,7 @@ jac install --dev
 jac start main.jac --no-client
 ```
 
-The current entrypoint is API-only. Member C's client modules remain placeholders. The API normally runs on port 8000; use the port actually reported at startup if another server already occupies it. The installed server exposes API discovery at `/functions`, `/walkers`, and `/function/<operation>` for a signature. Do not assume `/docs` or `/openapi.json` is available in this server mode.
+The current entrypoint is API-only. Member C's client modules remain placeholders. The API normally runs on port 8000; use the port actually reported at startup if another server already occupies it. With the byLLM/serve dependencies installed, the full server exposes `/docs`, `/openapi.json` and `/healthz`. The earlier minimal fallback exposed `/functions` and `/walkers`; those discovery paths are not available on the full server. Function POST routes and the response envelope are unchanged.
 
 Configure `MONGODB_URI` in local `.env`, `MONGODB_DB`, and a `FIXORA_ACCESS_TOKEN` of at least 16 characters. Process environment overrides `.env`. The application reads the file without exporting its contents into the process. A local access token was generated during backend setup; retrieve it directly from your own `.env`, without sharing credentials in source control. Each teammate needs their own local environment settings. The examples contain no actual secrets.
 
@@ -69,7 +69,7 @@ def run_stage(context: dict[str, any]) -> StageResult {
 }
 ```
 
-This snippet describes the interface; it has not been inserted into your files. The coordinator imports the specialist dynamically, calls it once, and validates the result. The stage/module names are `document`, `vision`, `coverage`, `repair_parts`, `resolution`. Missing implementations produce `SPECIALIST_UNAVAILABLE`; there is no silent fallback to fake model output.
+All five specialists now implement this interface; see [MEMBER_B_HANDOFF.md](MEMBER_B_HANDOFF.md). The coordinator imports the specialist dynamically, calls it once, and validates the result. The stage/module names are `document`, `vision`, `coverage`, `repair_parts`, `resolution`. Missing implementations produce `SPECIALIST_UNAVAILABLE`; there is no silent fallback to fake model output.
 
 | Context field | Contents |
 | --- | --- |
@@ -96,7 +96,7 @@ The platform supplies typed `InvoiceFields`, `Observation`, `CoverageResult`, `R
 
 ### Catalogue seeding
 
-Member B populates `fixtures/policies.json`, `products.json`, `repairs.json`, and `inventory.json`. Arrays are still empty. Every record needs a stable string `_id`. Repair and inventory `compatible_model_ids` reference product `_id` values. Other required fields follow the architecture's data model and validation in `data/seed.jac`.
+Member B has populated `fixtures/policies.json`, `products.json`, `repairs.json`, and `inventory.json` with explicitly fictional data. Every record has a stable string `_id`. Repair and inventory `compatible_model_ids` reference product `_id` values. Other required fields follow validation in `data/seed.jac`.
 
 Then explicitly run:
 

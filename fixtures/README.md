@@ -1,6 +1,6 @@
 # Shared fixtures — Member B
 
-The four JSON files currently contain empty arrays. They are placeholders, not usable seed data. Finalize record shapes with Member A before populating them.
+The four catalogue files now contain one fictional shop policy, three fictional laptop models, three repair definitions and nine stock records. All IDs use the `demo-` prefix. Run `jac run data/seed.jac` explicitly to load them; repeated runs replace records with the same IDs. Prices are illustrative LKR minor units, not market prices.
 
 | File | Intended content |
 | --- | --- |
@@ -17,4 +17,6 @@ Prepare shared input/result fixtures for:
 2. Invoice/product mismatch requiring clarification.
 3. Visible damage plus an uncertain fault requiring inspection.
 
-Save the scenario files here after agreeing the contracts. Use synthetic invoices and photos you can share with the team. Keep files small and label any saved model output as a fixture. Do not add real customer data or secrets.
+`scenarios.json` specifies exact inputs/descriptions and expected outcomes. The five PNGs in `evidence/` are labelled synthetic illustrations/invoices. `demo_evidence.json` maps SHA-256 hashes of their bytes to recorded extraction outputs. With `FIXORA_DEMO_MODE=true`, only these exact image bytes are accepted and all results are labelled `demo_fixture`. This is explicit fixture replay, not a live model call. Disable that setting to analyze arbitrary images through the configured model.
+
+See [MEMBER_B_HANDOFF.md](../MEMBER_B_HANDOFF.md) for provider setup, scenario details and the fields Member C should render. Do not add real customer data or secrets.

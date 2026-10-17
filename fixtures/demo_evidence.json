@@ -1,0 +1,75 @@
+{
+  "f26b1f4995b5a8b9867d7a044af9b9e222a93c64c2ad3fc07e91b42bd17c4efd": {
+    "stage": "document",
+    "output": {
+      "invoice_number": "DEMO-INV-001",
+      "purchase_date": "2024-06-15",
+      "manufacturer": "Fixora Demo",
+      "model_code": "FD-100",
+      "serial_number": "DEMO-SERIAL-100",
+      "seller": "Fictional Fixora Shop",
+      "amount_minor": 18500000,
+      "currency": "LKR",
+      "source_text": "DEMO-INV-001 | 2024-06-15 | Fixora Demo FD-100 | DEMO-SERIAL-100 | LKR 185000.00"
+    }
+  },
+  "8c9fb6087b713d3dbf8e6ff589f065f4d41e2bae7b3eca87f3add6f2c7faf484": {
+    "stage": "document",
+    "output": {
+      "invoice_number": "DEMO-INV-002",
+      "purchase_date": "2026-08-10",
+      "manufacturer": "Fixora Demo",
+      "model_code": "FD-100",
+      "serial_number": "DEMO-SERIAL-100",
+      "seller": "Fictional Fixora Shop",
+      "amount_minor": 18500000,
+      "currency": "LKR",
+      "source_text": "DEMO-INV-002 | 2026-08-10 | Fixora Demo FD-100 | DEMO-SERIAL-100 | LKR 185000.00"
+    }
+  },
+  "0a1e8c6c2c5eb4b4898c09fc64960c01bf959c43bc7ab27a27bcdf97e1373f14": {
+    "stage": "vision",
+    "output": {
+      "manufacturer": "Fixora Demo",
+      "model_code": "FD-100",
+      "serial_number": "DEMO-SERIAL-100",
+      "category": "screen_crack",
+      "description": "Illustration shows a crack across the display.",
+      "severity": "moderate",
+      "limitations": [
+        "Synthetic illustration, not a real photograph.",
+        "Internal components and electrical operation cannot be assessed."
+      ]
+    }
+  },
+  "2391210961557761ac0aaa50b1d99a73b0c035d5841725999cea5b565f6b5ff0": {
+    "stage": "vision",
+    "output": {
+      "manufacturer": "Fixora Demo",
+      "model_code": "FD-200",
+      "serial_number": "DEMO-SERIAL-200",
+      "category": "screen_crack",
+      "description": "Illustration shows a crack across the display.",
+      "severity": "moderate",
+      "limitations": [
+        "Synthetic illustration, not a real photograph.",
+        "Internal components and electrical operation cannot be assessed."
+      ]
+    }
+  },
+  "2dfc8c3d7f0b66800aa1a9acaa4c8f8fd57345c4a84d11d76e63880bb701dd7a": {
+    "stage": "vision",
+    "output": {
+      "manufacturer": "Fixora Demo",
+      "model_code": "FD-100",
+      "serial_number": "DEMO-SERIAL-100",
+      "category": "cosmetic_damage",
+      "description": "Illustration identifies a small exterior scratch. Power operation cannot be assessed.",
+      "severity": "cosmetic",
+      "limitations": [
+        "Synthetic illustration, not a real photograph.",
+        "Internal components and electrical operation cannot be assessed."
+      ]
+    }
+  }
+}

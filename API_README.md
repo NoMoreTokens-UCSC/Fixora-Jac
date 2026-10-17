@@ -2,7 +2,7 @@
 
 This document describes the implemented Member A backend on **Jac 0.34.6 (Linux x86_64)**. Source of truth: `main.jac`, `server/`, `shared/`, `data/`, and `workflow/`.
 
-The case/evidence APIs and coordinator are implemented. The five specialist modules remain placeholders until Member B connects them. An assessment currently stops with a saved `SPECIALIST_UNAVAILABLE` stage error; it does not produce an AI warranty decision yet.
+The case/evidence APIs, coordinator and all five specialist modules are implemented. Seed the catalogue and configure a vision model/API key, or explicitly enable fixture demo mode. Without model configuration, a live assessment saves a `MODEL_NOT_CONFIGURED` error. See [MEMBER_B_HANDOFF.md](MEMBER_B_HANDOFF.md) for setup and detailed findings.
 
 ## Contents
 
@@ -119,15 +119,15 @@ All ten application endpoints use **POST** and `Content-Type: application/json`,
 | `/function/start_assessment` | Create an assessment without executing a specialist | `case` |
 | `/function/advance_case` | Execute at most one specialist stage | `case` |
 
-The installed Jac server also exposes discovery routes:
+With all project dependencies installed, the full Jac server exposes:
 
 ```bash
-curl -sS http://localhost:8000/functions
-curl -sS http://localhost:8000/function/create_case
-curl -sS http://localhost:8000/walkers
+curl -sS http://localhost:8000/healthz
+curl -sS http://localhost:8000/openapi.json
+# Open http://localhost:8000/docs for interactive API documentation.
 ```
 
-These are framework discovery operations, not case-data APIs. `/docs` and `/openapi.json` are not available in the currently verified API-only server mode. Jac's built-in `/user/...` routes are outside this application's API contract.
+These are framework operations, not case-data APIs. The earlier minimal fallback used `/functions` and `/walkers` for discovery; those routes are absent from the full server. Jac's built-in `/user/...` routes are outside this application's API contract. The entrypoint includes a Jac 0.34.6 compatibility adapter for guest initialization and request-parameter log redaction; restart the server after updating.
 
 ## Copyable command setup
 
@@ -182,18 +182,18 @@ Checks the database and whether each specialist module exports a callable `run_s
 printf '{}' | api platform_status
 ```
 
-Example response data with the current specialist placeholders:
+Example response data after dependencies are installed:
 
 ```json
 {
   "database": "connected",
   "jac_baseline": "0.34.6",
   "specialists": {
-    "document": "unavailable",
-    "vision": "unavailable",
-    "coverage": "unavailable",
-    "repair_parts": "unavailable",
-    "resolution": "unavailable"
+    "document": "ready",
+    "vision": "ready",
+    "coverage": "ready",
+    "repair_parts": "ready",
+    "resolution": "ready"
   },
   "workflow": "client-advanced bounded stages",
   "human_review": "deferred"
@@ -521,7 +521,7 @@ jq -n '{
 
 Response data: `{ "case": CaseView }`. A normal claim and result commit each increase the revision, so a stage ordinarily increases it by **two**. Always use the actual revision returned by the server instead of calculating it yourself.
 
-The stage result is at `case.assessment.stages[stage]`. The following is the inner application result for the **currently unimplemented document specialist**; the case is abbreviated:
+The stage result is at `case.assessment.stages[stage]`. The following is the inner application result when **live model configuration is missing**; the case is abbreviated:
 
 ```json
 {
@@ -545,8 +545,8 @@ The stage result is at `case.assessment.stages[stage]`. The following is the inn
             "conflicts": [],
             "next_action": "continue",
             "error": {
-              "code": "SPECIALIST_UNAVAILABLE",
-              "message": "Member B must implement run_stage(context) in specialists/document.jac."
+              "code": "MODEL_NOT_CONFIGURED",
+              "message": "Set FIXORA_MODEL and the provider API key, or explicitly enable fixture demo mode."
             },
             "started_at": "2026-10-17T07:02:00.000+00:00",
             "finished_at": "2026-10-17T07:02:00.100+00:00"
@@ -614,7 +614,7 @@ Each persisted stage result contains `stage`, `status`, `findings`, `evidence_re
 
 Stage status values: `completed`, `blocked`, `failed`. Next-action values: `continue`, `needs_information`, `needs_inspection`, `complete`. Case status governs whether the client should keep advancing; a failed stage may still have `next_action: "continue"` so that it can be retried explicitly.
 
-`findings` is stage-specific JSON supplied by Member B. Detailed invoice/coverage/repair findings are not yet a finalized HTTP schema. Do not assume a generated diagnosis or price exists before that specialist is connected.
+`findings` is stage-specific JSON: `document.invoice`, `vision.observations`, `coverage.coverage` and `policy_clauses`, `repair_parts.options`, and `resolution.report`. Each stage includes `analysis_mode` (`live_model` or `demo_fixture`); the latter is an explicitly selected recorded extraction. Prices are integer minor units; customer payable and turnaround remain null. [Member B's schema reference](MEMBER_B_HANDOFF.md#findings-for-member-c) includes report and option details.
 
 ## States, revisions, and retries
 
@@ -660,7 +660,14 @@ All application endpoints may return access, configuration, database, or interna
 | `DATABASE_UNAVAILABLE` | Application error | MongoDB operation failed; check server access/configuration/connectivity |
 | `EVIDENCE_UNAVAILABLE` | Application error | Metadata exists but GridFS cannot retrieve the file |
 | `INTERNAL_ERROR` | Application error | Unexpected platform failure; inspect server configuration/logs |
-| `SPECIALIST_UNAVAILABLE` | Saved stage error | Missing specialist function/dependency; connect Member B's implementation |
+| `SPECIALIST_UNAVAILABLE` | Saved stage error | Specialist function or installed dependency could not be loaded |
+| `MODEL_NOT_CONFIGURED` | Saved stage error | Set a vision model and provider key, or explicitly use bundled fixture mode |
+| `MODEL_AUTH_ERROR`, `MODEL_RATE_LIMIT`, `MODEL_NOT_FOUND` | Saved stage error | Fix provider credentials, quota or model selection before retrying |
+| `MODEL_INVALID_OUTPUT` | Saved stage error | Structured extraction or its validated fields are invalid |
+| `MODEL_BUSY` | Saved stage error | Another image request is running; retry shortly |
+| `MODEL_UNAVAILABLE`, `MODEL_CONNECTION_ERROR` | Saved stage error | Provider is temporarily busy/unavailable or cannot be reached; retry explicitly later |
+| `DEMO_EVIDENCE_NOT_FOUND` | Saved stage error | Fixture mode received an image outside the bundled hash allowlist |
+| `INVALID_CATALOGUE`, `MISSING_STAGE_RESULT` | Saved stage error | Catalogue or prerequisite result does not support this stage |
 | `MODEL_TIMEOUT` | Saved stage error | Specialist exceeded 45 seconds |
 | `INVALID_SPECIALIST_RESULT` | Saved stage error | Wrong stage/type/status, invalid references, non-JSON/oversized result, or invalid next action |
 | `SPECIALIST_FAILED` | Saved stage error | Unexpected specialist exception; details withheld |
@@ -748,7 +755,7 @@ restored = call_api("get_case", case_id=case["id"])["case"]
 print("Reloaded case:", restored["id"], restored["status"])
 ```
 
-With the current specialist placeholders, the expected final status is `failed` and the document-stage error is `SPECIALIST_UNAVAILABLE`. Once Member B connects the specialists, the same client code follows their real results. This example has no automatic network retry; a production caller should retain request IDs and reconcile case state as described above.
+Use the matching invoice/product pair and description from `fixtures/scenarios.json` in fixture mode; arbitrary images are rejected there. With live mode enabled, configure a vision model and API key. This example has no automatic network retry; retain request IDs and reconcile case state as described above.
 
 ## Browser and Jac client examples
 

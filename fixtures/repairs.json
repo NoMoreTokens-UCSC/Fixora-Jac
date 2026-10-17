@@ -1,1 +1,50 @@
-[]
+[
+  {
+    "_id": "demo-repair-display",
+    "title": "Display replacement",
+    "diagnosis_code": "screen_crack",
+    "required_part_types": [
+      "display_panel"
+    ],
+    "compatible_model_ids": [
+      "demo-laptop-01",
+      "demo-laptop-02",
+      "demo-laptop-03"
+    ],
+    "labour_cost_minor": 250000,
+    "currency": "LKR",
+    "synthetic": true
+  },
+  {
+    "_id": "demo-repair-hinge",
+    "title": "Hinge replacement",
+    "diagnosis_code": "hinge_damage",
+    "required_part_types": [
+      "hinge_assembly"
+    ],
+    "compatible_model_ids": [
+      "demo-laptop-01",
+      "demo-laptop-02",
+      "demo-laptop-03"
+    ],
+    "labour_cost_minor": 180000,
+    "currency": "LKR",
+    "synthetic": true
+  },
+  {
+    "_id": "demo-repair-keyboard",
+    "title": "Keyboard replacement",
+    "diagnosis_code": "keyboard_damage",
+    "required_part_types": [
+      "keyboard"
+    ],
+    "compatible_model_ids": [
+      "demo-laptop-01",
+      "demo-laptop-02",
+      "demo-laptop-03"
+    ],
+    "labour_cost_minor": 200000,
+    "currency": "LKR",
+    "synthetic": true
+  }
+]

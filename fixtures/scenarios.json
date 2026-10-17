@@ -1,0 +1,28 @@
+[
+  {
+    "id": "complete",
+    "description": "The display is visibly cracked. Please estimate a display replacement.",
+    "claimed_model_id": "demo-laptop-01",
+    "invoice": "evidence/invoice-expired.png",
+    "product": "evidence/product-cracked.png",
+    "expected_status": "completed",
+    "expected_coverage": "outside_period",
+    "expected_total_cost_minor": 2650000
+  },
+  {
+    "id": "identity-conflict",
+    "description": "The display is visibly cracked.",
+    "claimed_model_id": "demo-laptop-01",
+    "invoice": "evidence/invoice-expired.png",
+    "product": "evidence/product-mismatch.png",
+    "expected_status": "needs_information"
+  },
+  {
+    "id": "uncertain-fault",
+    "description": "Laptop will not power on. There is a small exterior scratch.",
+    "claimed_model_id": "demo-laptop-01",
+    "invoice": "evidence/invoice-recent.png",
+    "product": "evidence/product-scratch.png",
+    "expected_status": "needs_inspection"
+  }
+]

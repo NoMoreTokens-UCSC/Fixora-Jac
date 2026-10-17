@@ -1,1 +1,23 @@
-[]
+[
+  {
+    "_id": "demo-laptop-01",
+    "manufacturer": "Fixora Demo",
+    "model_code": "FD-100",
+    "display_name": "Fixora Demo Laptop 100",
+    "synthetic": true
+  },
+  {
+    "_id": "demo-laptop-02",
+    "manufacturer": "Fixora Demo",
+    "model_code": "FD-200",
+    "display_name": "Fixora Demo Laptop 200",
+    "synthetic": true
+  },
+  {
+    "_id": "demo-laptop-03",
+    "manufacturer": "Fixora Demo",
+    "model_code": "FD-300",
+    "display_name": "Fixora Demo Laptop 300",
+    "synthetic": true
+  }
+]

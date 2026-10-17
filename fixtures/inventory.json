@@ -1,1 +1,110 @@
-[]
+[
+  {
+    "_id": "demo-stock-1-display_panel",
+    "sku": "DEMO-1-DISPLAY_PANEL",
+    "part_type": "display_panel",
+    "compatible_model_ids": [
+      "demo-laptop-01"
+    ],
+    "quantity_available": 3,
+    "unit_price_minor": 2400000,
+    "currency": "LKR",
+    "synthetic": true
+  },
+  {
+    "_id": "demo-stock-1-hinge_assembly",
+    "sku": "DEMO-1-HINGE_ASSEMBLY",
+    "part_type": "hinge_assembly",
+    "compatible_model_ids": [
+      "demo-laptop-01"
+    ],
+    "quantity_available": 0,
+    "unit_price_minor": 850000,
+    "currency": "LKR",
+    "synthetic": true
+  },
+  {
+    "_id": "demo-stock-1-keyboard",
+    "sku": "DEMO-1-KEYBOARD",
+    "part_type": "keyboard",
+    "compatible_model_ids": [
+      "demo-laptop-01"
+    ],
+    "quantity_available": 2,
+    "unit_price_minor": 950000,
+    "currency": "LKR",
+    "synthetic": true
+  },
+  {
+    "_id": "demo-stock-2-display_panel",
+    "sku": "DEMO-2-DISPLAY_PANEL",
+    "part_type": "display_panel",
+    "compatible_model_ids": [
+      "demo-laptop-02"
+    ],
+    "quantity_available": 3,
+    "unit_price_minor": 2400000,
+    "currency": "LKR",
+    "synthetic": true
+  },
+  {
+    "_id": "demo-stock-2-hinge_assembly",
+    "sku": "DEMO-2-HINGE_ASSEMBLY",
+    "part_type": "hinge_assembly",
+    "compatible_model_ids": [
+      "demo-laptop-02"
+    ],
+    "quantity_available": 0,
+    "unit_price_minor": 850000,
+    "currency": "LKR",
+    "synthetic": true
+  },
+  {
+    "_id": "demo-stock-2-keyboard",
+    "sku": "DEMO-2-KEYBOARD",
+    "part_type": "keyboard",
+    "compatible_model_ids": [
+      "demo-laptop-02"
+    ],
+    "quantity_available": 2,
+    "unit_price_minor": 950000,
+    "currency": "LKR",
+    "synthetic": true
+  },
+  {
+    "_id": "demo-stock-3-display_panel",
+    "sku": "DEMO-3-DISPLAY_PANEL",
+    "part_type": "display_panel",
+    "compatible_model_ids": [
+      "demo-laptop-03"
+    ],
+    "quantity_available": 0,
+    "unit_price_minor": 2400000,
+    "currency": "LKR",
+    "synthetic": true
+  },
+  {
+    "_id": "demo-stock-3-hinge_assembly",
+    "sku": "DEMO-3-HINGE_ASSEMBLY",
+    "part_type": "hinge_assembly",
+    "compatible_model_ids": [
+      "demo-laptop-03"
+    ],
+    "quantity_available": 0,
+    "unit_price_minor": 850000,
+    "currency": "LKR",
+    "synthetic": true
+  },
+  {
+    "_id": "demo-stock-3-keyboard",
+    "sku": "DEMO-3-KEYBOARD",
+    "part_type": "keyboard",
+    "compatible_model_ids": [
+      "demo-laptop-03"
+    ],
+    "quantity_available": 2,
+    "unit_price_minor": 950000,
+    "currency": "LKR",
+    "synthetic": true
+  }
+]

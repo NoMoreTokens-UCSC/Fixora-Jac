@@ -1,6 +1,6 @@
 # Owner: Member A — platform and deployment.
 # API backend validated with Jac 0.34.6 (Linux x86_64).
-# Member B adds byLLM configuration; Member C wires the client when ready.
+# byLLM is enabled for Member B; Member C wires the client when ready.
 
 [project]
 name = "fixora-ai"
@@ -17,6 +17,9 @@ dnspython = "==2.9.0"
 
 [dev-dependencies]
 mongomock = "==4.3.0"
+
+# Enable the byLLM capability bundled with this exact Jac release.
+[byllm]
 
 [serve]
 port = 8000

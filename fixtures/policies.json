@@ -1,1 +1,31 @@
-[]
+[
+  {
+    "_id": "demo-policy-v1",
+    "version": 1,
+    "duration_months": 12,
+    "expiry_rule": "calendar_months_inclusive_clamped",
+    "synthetic": true,
+    "clauses": [
+      {
+        "id": "DEMO-PERIOD-12M",
+        "kind": "period",
+        "text": "12 calendar months from purchase, including the expiry date; clamp to the last day of a shorter month."
+      },
+      {
+        "id": "DEMO-PHYSICAL",
+        "kind": "visible_damage_exclusion",
+        "categories": [
+          "screen_crack",
+          "hinge_damage",
+          "keyboard_damage"
+        ],
+        "text": "Visible physical damage to the affected component is excluded. This does not determine coverage of another fault."
+      },
+      {
+        "id": "DEMO-FAULT",
+        "kind": "conditional",
+        "text": "Manufacturing faults may be covered within the warranty period after diagnosis."
+      }
+    ]
+  }
+]

@@ -2,9 +2,13 @@
 
 Warranty assessment and repair recommendations for a single electronics shop, built with Jac and MongoDB.
 
-**Status: Member A backend implemented and verified on Jac 0.34.6.** Case operations, MongoDB/GridFS persistence, shared contracts, conditional stage coordination, and catalogue loading are implemented. All 21 platform tests pass; real HTTP upload/download and persistence across a server restart were verified using a temporary database. Member B's specialists and Member C's interface remain placeholders. Read [MEMBER_A_HANDOFF.md](MEMBER_A_HANDOFF.md) for the current API and specialist contracts.
+**Status: Member A backend and Member B specialists implemented on Jac 0.34.6.** Invoice/photo extraction uses typed byLLM calls; warranty, compatibility, pricing and the final report use fixed rules. Live Gemini invoice/photo analysis and the complete five-stage API path are verified using synthetic evidence. Member C's interface and JacHammer deployment remain pending. See [MEMBER_B_HANDOFF.md](MEMBER_B_HANDOFF.md) for provider setup, finding schemas and demo inputs, and [MEMBER_A_HANDOFF.md](MEMBER_A_HANDOFF.md) for platform contracts.
+
+Verification: 38 offline tests pass, and the three fixture scenarios pass over the full HTTP API with real MongoDB. Saved findings survive a server restart. The development database contains the fictional catalogue (1 policy, 3 products, 3 repairs, 9 stock records); temporary verification collections are removed after each live check. Restart the development server after pulling these changes; use the current demo token in your local `.env`. Run `jac run scripts/verify_live_agents.jac` for an opt-in check using the configured model and synthetic uploads; it makes real provider requests.
 
 For every endpoint's parameters, response shapes, errors, and curl/Python/browser examples, see [API_README.md](API_README.md).
+
+See [AGENT_VERIFICATION.md](AGENT_VERIFICATION.md) for the live Gemini results, fixes and rerun instructions.
 
 ## Team starting points
 
@@ -40,10 +44,10 @@ workflow/                      A  Coordinator, transient case graph, transitions
 data/                          A  MongoDB connection, repositories, GridFS, seeding
 specialists/                   B  Document, vision, coverage, repair/parts, resolution
 rules/                         B  Policy/date, compatibility, money calculations
-fixtures/                      B  Empty catalogue placeholders and scenario guidance
+fixtures/                      B  Synthetic catalogue, five evidence images, three scenarios
 ui/                            C  App shell, intake, saved cases, workspace and findings
 assets/                        C  Guidance for small, shareable visual assets
-tests/                       A/B/C Platform tests; business/UI checks to follow
+tests/                       A/B/C Platform and specialist tests; UI checks to follow
 ```
 
 File ownership and responsibilities are recorded in each source file. Member A's shared contracts and operation signatures are now available; agree changes before adding cross-module imports.
@@ -53,8 +57,9 @@ File ownership and responsibilities are recorded in each source file. Member A's
 1. All members confirm the reported Linux runtime: `jac --version` should report `jac 0.34.6 (Linux x86_64)`. This is the shared development baseline; do not upgrade independently.
 2. Run `jac install --dev` to install the pinned platform dependencies and test driver into the project's Jac environment.
 3. Copy `.env.example` to your own `.env` and configure MongoDB plus a `FIXORA_ACCESS_TOKEN` of at least 16 characters. The server reads `.env` without exporting its contents; process environment takes precedence. A local access token has already been generated in the current developer's ignored `.env`. For hosted secrets, prefer `FIXORA_MONGODB_URI` to keep Jac's separate graph backend independent.
-4. Run `jac start main.jac --no-client` to start the API backend. Member B selects/configures the actual model provider; the model integration is not implemented by the platform layer.
-5. Use the handoff's contracts to connect specialists and interface. Stop stage advancement on clarification, inspection, completion, or technical failure.
+4. Run `jac run data/seed.jac` to load the fictional shop policy, three models, repairs and inventory. Seeding is explicit and repeatable; it replaces records with the same fixture IDs.
+5. Configure a vision model and its key, or set `FIXORA_DEMO_MODE=true` to accept only the bundled synthetic evidence with clearly labelled recorded extractions. There is no automatic fallback from live mode.
+6. Run `jac start main.jac --no-client` to start the API backend. Stop stage advancement on clarification, inspection, completion, or technical failure.
 
 MongoDB is the authoritative business store. Reconstruct temporary Jac graphs from repository records; do not create a second persistent copy of case data in the Jac root graph.
 
