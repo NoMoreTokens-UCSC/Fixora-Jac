@@ -5,10 +5,11 @@ import from ..components.ui.badge { Badge }
 import from .models { CaseRecord }
 import from .gateway { assessment }
 import from .pieces { CopyButton }
+import from .parts { PartsAvailability }
 
 cl def money(amount: int) -> str { return f"USD {amount / 100:.2f}"; }
 
-def:pub Findings(c: CaseRecord, compact: bool, onSource: Callable[[str], None]) -> JsxElement {
+def:pub Findings(c: CaseRecord, compact: bool, busy: bool, onSource: Callable[[str], None], onAction: Callable[[str], None]) -> JsxElement {
     a = assessment(c);
     invoice_id = c.evidence[0].id if len(c.evidence) > 0 else "sample";
     photo_id = c.evidence[1].id if len(c.evidence) > 1 else "sample";
@@ -35,12 +36,7 @@ def:pub Findings(c: CaseRecord, compact: bool, onSource: Callable[[str], None]) 
             </CardContent></Card>
             <Card className="detail-card"><CardHeader><CardTitle>Observations & limitations</CardTitle></CardHeader><CardContent><p>{a.observation}</p><Button variant="link" size="sm" onClick={lambda { onSource(photo_id); }}>View product evidence<ArrowUpRight size={13}/></Button><div className="notice-box"><Info size={16}/><span>{a.limitation}</span></div></CardContent></Card>
         }}
-        <Card className="detail-card repair-card"><CardHeader><div className="flex items-center gap-2"><Package size={17}/><CardTitle>Repair & compatible parts</CardTitle></div><CardDescription>{"Owner finding recorded" if c.inspection else "Provisional · diagnosis must be confirmed"}</CardDescription></CardHeader><CardContent>
-            <strong className="repair-title">{a.repair}</strong><p className="muted small">{a.part}</p>
-            <div className="part-stock"><span className={"stock-dot " + ("out" if a.stock == 0 else "")}/><span>{str(a.stock) + " in stock · seeded availability" if a.stock > 0 else "Out of stock · arrival unknown"}</span></div>
-            <dl className="cost-lines"><div><dt>Compatible part</dt><dd>{money(a.part_minor)}</dd></div><div><dt>Labour</dt><dd>{money(a.labour_minor)}</dd></div><div className="cost-total"><dt>Shop repair cost</dt><dd>{money(a.part_minor + a.labour_minor)}</dd></div></dl>
-            <p className="muted tiny">Illustrative cost snapshot, not a firm quote. Customer payable remains unresolved until the shop confirms coverage. Stock is not reserved.</p>
-        </CardContent></Card>
+        <PartsAvailability c={c} compact={compact} busy={busy} onAction={onAction}/>
         <div className="next-step"><span className="section-eyebrow">NEXT STEP</span><p>{a.next_action}</p></div>
     </div>;
 }

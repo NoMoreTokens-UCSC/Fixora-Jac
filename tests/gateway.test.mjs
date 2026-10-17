@@ -116,3 +116,92 @@ test('atomic writes reject stale tabs without overwriting newer decisions', asyn
   expect(stored.find(row=>row.id===c.id).status).toBe('needs_information');
   expect(stored.find(row=>row.id===c.id).decisions.length).toBe(0);
 });
+
+async function partCase(scenario, model = 'Studio 14') {
+  const sample = await g.get_case('sample-complete');
+  let c = await g.create_case('alex', model, scenario);
+  c = await g.send_message(c.id, c.revision, scenario === 'missing_charger' ? 'My charger is missing. Can I get a compatible one from the shop?' : 'Please check a replacement part for this laptop.');
+  c = await g.attach_evidence(c.id, c.revision, {...sample.evidence[0],id:'invoice-'+c.id});
+  c = await g.attach_evidence(c.id, c.revision, {...sample.evidence[1],id:'photo-'+c.id});
+  return advance(c);
+}
+
+test('missing charger automatically publishes a compatible shop offer and reload retains it', async () => {
+  let c = await partCase('missing_charger');
+  expect(c.availability.sku).toBe('FX-AC14');
+  expect(c.availability.status).toBe('in_stock');
+  expect(c.availability.unit_minor).toBe(6000);
+  expect(c.availability.labour_minor).toBe(0);
+  expect(c.coverage).toBe('needs_review');
+  const published = c.messages.find(m=>m.id===c.availability.message_id);
+  expect(published.text).toContain('available from our shop');
+  expect(published.text).toContain('No stock is reserved');
+  expect(published.revision).toBe(c.revision);
+  await g.refresh_cases();
+  c = await g.get_case(c.id);
+  expect(c.availability.message_id).toBe(published.id);
+});
+
+test('part checks are model-specific and repeated refreshes do not duplicate messages', async () => {
+  let c = await partCase('replacement','Pro 15');
+  expect(c.availability.sku).toBe('FX-CH15');
+  expect(c.availability.unit_minor).toBe(5500);
+  const id = c.availability.message_id;
+  c = await g.check_parts(c.id,c.revision);
+  c = await g.check_parts(c.id,c.revision);
+  expect(c.availability.message_id).toBe(id);
+  expect(c.messages.filter(m=>m.kind.startsWith('availability:')).length).toBe(1);
+  expect(c.decisions.length).toBe(0);
+});
+
+test('out-of-stock and uncertain matches never claim shop availability', async () => {
+  const out = await partCase('no_stock');
+  expect(out.availability.status).toBe('out_of_stock');
+  expect(out.availability.stock).toBe(0);
+  expect(out.messages.some(m=>m.text.includes('is available from our shop'))).toBe(false);
+  let unknown = await partCase('uncertain_compatibility');
+  expect(unknown.availability.compatibility).toBe('unknown');
+  expect(unknown.availability.sku).toBe('');
+  expect(unknown.messages.some(m=>m.text.includes('is available from our shop'))).toBe(false);
+  unknown = await g.correct_case(unknown.id,unknown.revision,'Studio 14','Model and matching fictional charger specification confirmed from label.');
+  unknown = await advance(unknown);
+  expect(unknown.availability.status).toBe('in_stock');
+});
+
+test('inventory lookup failure can retry without changing warranty decision state', async () => {
+  let c = await partCase('inventory_failure');
+  expect(c.status).toBe('awaiting_approval');
+  expect(c.availability.status).toBe('error');
+  expect(c.availability.message_id).toBe('');
+  const rev = c.revision;
+  c = await g.check_parts(c.id,c.revision,true);
+  expect(c.availability.status).toBe('in_stock');
+  expect(c.revision).toBe(rev);
+  expect(c.status).toBe('awaiting_approval');
+  expect(c.decisions.length).toBe(0);
+});
+
+test('correction invalidates availability and preserves revision-tagged earlier offers', async () => {
+  let c = await partCase('replacement');
+  const oldRevision = c.revision;
+  const oldMessage = c.availability.message_id;
+  c = await g.correct_case(c.id,c.revision,'Air 13','Confirmed Air 13 instead of Studio 14.');
+  expect(c.availability.revision).toBe(oldRevision);
+  expect(c.availability.revision).not.toBe(c.revision);
+  await expect(g.check_parts(c.id,c.revision)).rejects.toThrow('assess the current');
+  c = await advance(c);
+  expect(c.availability.sku).toBe('FX-CH13');
+  expect(c.availability.revision).toBe(c.revision);
+  expect(c.availability.message_id).not.toBe(oldMessage);
+  expect(c.messages.find(m=>m.id===oldMessage).revision).toBe(oldRevision);
+});
+
+test('legacy records without availability or message tags load without losing saved content', async () => {
+  await update('fixora-demo-v1',rows=>rows.map(row=>{ const {availability,...old}=row; old.messages=old.messages.map(({kind,revision,...m})=>m); return old; }));
+  const rows = await g.refresh_cases();
+  expect(rows.length).toBe(7);
+  expect(rows[0].availability.status).toBe('unchecked');
+  expect(rows[0].messages[0].text).toContain('Hi Alex');
+  const c = await g.check_parts(rows[0].id,rows[0].revision);
+  expect(c.availability.status).toBe('in_stock');
+});

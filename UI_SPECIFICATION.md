@@ -81,6 +81,10 @@ Current implementation boundaries are listed below. Legacy comment-only `ui/inta
 | `ui/login.css` | Reference-inspired split login layout; strictly monochrome tokens scoped to login. |
 | `ui/brand.jac` | User-provided light/dark brand mark, selected with the existing theme. |
 | `ui/motion.jac` | Framer Motion title entrance with reduced-motion support. |
+| `ui/login-feature.css` | Centered, inverse-theme login feature panel and scoped laptop glass card. |
+| `ui/readability.css` | Shared larger typography tokens, responsive layouts, and flatter summary/assessment sections. |
+| `ui/inventory.jac` | Fictional six-item catalogue and typed asynchronous part match/stock result. |
+| `ui/parts.jac` | Customer/owner availability details, separate stock retry, and customer enquiry action. |
 | `ui/chat.jac` | Customer timeline, composer, uploads, clarification, stage activity, and published result/decision cards. |
 | `ui/dashboard.jac` | Owner queue, filters/counts, embedded conversation/evidence/assessment/history tabs, customer-facing reply composer, and review controls. |
 | `ui/findings.jac` | Shared warranty, invoice, observation, repair/parts, cost and next-action displays. |

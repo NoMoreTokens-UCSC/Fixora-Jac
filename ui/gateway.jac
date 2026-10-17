@@ -1,5 +1,6 @@
 import from "idb-keyval" { get, update }
-import from .models { CaseRecord, Message, Evidence, Decision, Assessment }
+import from .models { CaseRecord, Message, Evidence, Decision, Assessment, PartAvailability }
+import from .inventory { lookup_parts, requirement_for }
 
 glob _cases: list[CaseRecord] = [];
 glob _loaded: bool = False;
@@ -9,7 +10,13 @@ glob _key: str = "fixora-demo-v1";
 def:pub stamp() -> str { return new(Date).toISOString(); }
 def:pub uid() -> str { browser_window: any = window; return browser_window.crypto.randomUUID() as str; }
 def:pub clone_case(c: CaseRecord) -> CaseRecord {
-    return JSON.parse(JSON.stringify(c)) as CaseRecord;
+    copy = JSON.parse(JSON.stringify(c)) as CaseRecord;
+    if not copy.availability { copy.availability = PartAvailability(); }
+    for m in copy.messages {
+        if not m.kind { m.kind = ""; }
+        if not m.revision { m.revision = 0; }
+    }
+    return copy;
 }
 def:pub message(role: str, text: str, internal: bool = False) -> Message {
     return Message(id=uid(), role=role, text=text, at=stamp(), internal=internal);
@@ -53,6 +60,12 @@ def:pub assessment(c: CaseRecord) -> Assessment {
     if c.scenario == "no_stock" {
         a.stock = 0;
         a.next_action = "The compatible part is out of stock. Arrival and completion dates are unknown.";
+    }
+    if c.scenario in ["missing_charger", "uncertain_compatibility"] {
+        a.coverage = "Accessory request · shop review";
+        a.rationale = "A reported missing charger is not proof of a warranty-covered defect. Accessory cost and any coverage must be confirmed by the shop.";
+        a.repair = "Confirm a compatible replacement charger";
+        a.next_action = "Check the sample part availability below, then ask the shop about collection. No purchase or reservation occurs here.";
     }
     if c.inspection { a.observation = "Owner inspection: " + c.inspection; }
     if c.correction { a.rationale = a.rationale + " Recorded correction: " + c.correction; }
@@ -130,6 +143,33 @@ async def:pub search_cases(query: str, persona: str, owner: bool) -> list[CaseRe
     rows: list[CaseRecord] = await load_cases();
     needle = query.strip().lower();
     return [c for c in rows if (owner or c.customer_id == persona) and (not needle or needle in (c.reference + " " + c.title + " " + c.model + " " + c.customer + " " + " ".join([m.text for m in c.messages if owner or not m.internal])).lower())];
+}
+
+def publish_availability(c: CaseRecord) {
+    a = c.availability;
+    if a.revision != c.revision or a.status in ["unchecked", "error"] { return; }
+    key = str(c.revision) + ":" + a.sku + ":" + a.status;
+    previous = [m for m in c.messages if m.kind == "availability:" + key and m.revision == c.revision];
+    if previous { a.message_id = previous[0].id; a.publication_key = key; return; }
+    text = "Sample stock check: compatibility is uncertain. Please confirm your model and the matching part specification with the shop; no availability offer has been made.";
+    if a.status == "in_stock" and a.compatibility == "confirmed" {
+        text = "Sample stock check: " + a.part_name + " (" + a.sku + ") is available from our shop for " + c.model + ". " + str(a.stock) + " in sample stock. Ask us here about collection or installation. No stock is reserved and no purchase has been made.";
+        if a.provisional { text = text + " This is a candidate replacement; the shop must confirm the fault and final fit before any repair."; }
+    } elif a.status == "out_of_stock" {
+        text = "Sample stock check: " + a.part_name + " matches " + c.model + ", but it is out of stock. Arrival is unknown; ask the shop about alternatives. No availability offer has been made.";
+    }
+    m = message("assistant", text); m.kind = "availability:" + key; m.revision = c.revision;
+    c.messages = c.messages + [m]; a.message_id = m.id; a.publication_key = key;
+}
+
+async def:pub check_parts(case_id: str, expected: int, retry: bool = False) -> CaseRecord {
+    c = await get_case(case_id);
+    if c.stage < 4 or c.status in ["needs_information", "needs_inspection", "draft", "failed"] {
+        raise Exception("Resolve the case details and assess the current revision before checking parts.");
+    }
+    c.availability = await lookup_parts(c, retry);
+    if c.stage == 5 { publish_availability(c); }
+    return await persist(c, expected);
 }
 async def persist(c: CaseRecord, expected: int) -> CaseRecord {
     if _writing { raise Exception("Another change is being saved. Please try again."); }
@@ -246,6 +286,7 @@ async def:pub advance_case(case_id: str, expected: int) -> CaseRecord {
     if c.status == "failed" { c.retried = True; }
     c.status = "processing";
     c.stage = min(c.stage + 1, 5);
+    if c.stage == 4 { c.availability = await lookup_parts(c); }
     if c.scenario == "failure" and c.stage == 2 and not c.retried {
         c.status = "failed";
         c.messages = c.messages + [message("assistant", "The sample vision stage timed out. Your evidence is saved. Choose Retry assessment to resume; this is not a warranty rejection.")];
@@ -259,6 +300,7 @@ async def:pub advance_case(case_id: str, expected: int) -> CaseRecord {
         c.status = "awaiting_approval";
         c.coverage = "potentially_covered";
         c.assessed_revision = c.revision;
+        if c.scenario in ["missing_charger", "uncertain_compatibility"] { c.coverage = "needs_review"; }
         c.messages = c.messages + [message("assistant", "Your sample assessment is ready. " + assessment(c).next_action + " See the evidence-backed summary below.")];
         if c.scenario == "auto" or c.scenario == "rejected" {
             c.status = "approved" if c.scenario == "auto" else "rejected";
@@ -267,6 +309,7 @@ async def:pub advance_case(case_id: str, expected: int) -> CaseRecord {
             c.decisions = c.decisions + [Decision(id=uid(), action=c.status, reason=reason, origin="automatic", revision=c.revision, at=stamp())];
             c.messages = c.messages + [message("shop", reason)];
         }
+        publish_availability(c);
     }
     return await persist(c, expected);
 }

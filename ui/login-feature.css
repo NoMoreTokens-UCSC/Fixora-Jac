@@ -1,0 +1,95 @@
+/* The sign-in feature panel intentionally contrasts with the active theme. */
+.login-feature {
+  --feature-bg: #101010;
+  --feature-ink: #f8f8f8;
+  --feature-muted: #bcbcbc;
+  --feature-line: #ffffff29;
+  --feature-glass: #ffffff0f;
+  --feature-shape: #626262;
+  background: var(--feature-bg);
+  color: var(--feature-ink);
+  border-color: var(--feature-line);
+  isolation: isolate;
+  min-height: 100dvh;
+}
+.dark .login-feature {
+  --feature-bg: #f1f1f1;
+  --feature-ink: #111111;
+  --feature-muted: #555555;
+  --feature-line: #00000024;
+  --feature-glass: #ffffff80;
+  --feature-shape: #c2c2c2;
+}
+.login-feature-top, .login-feature-top button, .login-feature-copy p,
+.login-feature-copy .feature-index, .login-feature-footer { color: var(--feature-muted); }
+.login-feature-top { z-index: 2; }
+.login-feature-copy h2 { color: var(--feature-ink); }
+.login-feature .login-feature-content {
+  width: min(500px, calc(100% - 80px));
+  margin: auto;
+  padding: 42px 0;
+  text-align: center;
+}
+.login-feature-copy p { margin-inline: auto; }
+.login-feature .feature-pagination { justify-content: center; }
+.feature-pagination > span { background: var(--feature-line); }
+.feature-pagination > span.current { background: var(--feature-ink); }
+.login-feature-footer { background: transparent; z-index: 2; }
+.dark .login-feature-footer .logo-light { display: block !important; }
+.dark .login-feature-footer .logo-dark { display: none !important; }
+
+/* Grayscale forms give the translucent card a visible backdrop to refract. */
+.login-feature-content::before, .login-feature-content::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  z-index: -1;
+}
+.login-feature-content::before {
+  width: 280px;
+  height: 280px;
+  top: 10px;
+  right: -65px;
+  border-radius: 50%;
+  background: var(--feature-shape);
+}
+.login-feature-content::after {
+  width: 190px;
+  height: 230px;
+  top: 210px;
+  left: -45px;
+  border-radius: 40px;
+  border: 1px solid var(--feature-muted);
+  transform: rotate(-18deg);
+}
+.login-feature .login-showcase {
+  position: relative;
+  text-align: left;
+  color: var(--feature-ink);
+  background: var(--feature-glass);
+  border: 1px solid #ffffff70;
+  border-radius: 22px;
+  backdrop-filter: blur(24px) saturate(0);
+  -webkit-backdrop-filter: blur(24px) saturate(0);
+  box-shadow: inset 0 1px 0 #ffffff80, inset 0 -1px 0 #ffffff18, 0 20px 50px #00000024;
+  overflow: hidden;
+}
+.login-showcase .showcase-heading, .login-showcase .showcase-product > div > span,
+.login-showcase .showcase-case > div > span, .login-showcase .showcase-case > svg { color: var(--feature-muted); }
+.login-showcase .showcase-indicator > span { background: var(--feature-ink); }
+.login-showcase .showcase-product { background: #ffffff08; border: 1px solid var(--feature-line); border-radius: 12px; }
+.login-showcase .showcase-product strong { color: var(--feature-ink); }
+.login-showcase .showcase-case { border-color: var(--feature-line); }
+.login-showcase .showcase-case-icon { background: var(--feature-line); }
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .login-feature .login-showcase { background: #252525; }
+  .dark .login-feature .login-showcase { background: #ffffff; }
+}
+@media (max-width:1200px) {
+  .login-feature .login-feature-content { width: calc(100% - 48px); }
+  .login-feature-content::before { width: 210px; height: 210px; right: -40px; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .login-feature .login-showcase { background: #252525; backdrop-filter: none; }
+  .dark .login-feature .login-showcase { background: #ffffff; }
+}

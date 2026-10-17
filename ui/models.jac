@@ -5,6 +5,35 @@ cl obj:pub Message {
     has text: str = "";
     has at: str = "";
     has internal: bool = False;
+    has kind: str = "";
+    has revision: int = 0;
+}
+
+cl obj:pub InventoryPart {
+    has sku: str = "";
+    has name: str = "";
+    has models: list[str] = [];
+    has stock: int = 0;
+    has unit_minor: int = 0;
+    has labour_minor: int = 0;
+}
+
+cl obj:pub PartAvailability {
+    has revision: int = 0;
+    has requirement: str = "Replacement charging connector";
+    has sku: str = "";
+    has part_name: str = "";
+    has compatibility: str = "unknown";
+    has status: str = "unchecked";
+    has stock: int = 0;
+    has unit_minor: int = 0;
+    has labour_minor: int = 0;
+    has provisional: bool = True;
+    has checked_at: str = "";
+    has explanation: str = "";
+    has message_id: str = "";
+    has publication_key: str = "";
+    has attempts: int = 0;
 }
 
 cl obj:pub Evidence {
@@ -50,6 +79,7 @@ cl obj:pub CaseRecord {
     has clarified: bool = False;
     has retried: bool = False;
     has updated_at: str = "";
+    has availability: PartAvailability = PartAvailability();
 }
 
 cl obj:pub Assessment {

@@ -1,6 +1,6 @@
 # Verification plan — shared ownership
 
-The interactive UI gateway has nine regression tests in `gateway.test.mjs`, using isolated in-memory IndexedDB. Run `bash scripts/test-ui.sh` from WSL with the preview server stopped; the runner builds emitted client code before testing. These checks cover local persistence, scoped search, uploads, customer messages and shop replies, clarification/inspection, corrections, decisions, retry, stock, and stale writes. They do not exercise real AI or MongoDB.
+The interactive UI gateway has fifteen regression tests in `gateway.test.mjs`, using isolated in-memory IndexedDB. Run `bash scripts/test-ui.sh` from WSL with the preview server stopped; the runner builds emitted client code before testing. These checks cover local persistence, scoped search, uploads, customer messages and shop replies, clarification/inspection, corrections, decisions, retry, stock, and stale writes. Parts tests cover automatic offers, exact fictional model mapping, unavailable stock, uncertain compatibility, inventory retry, duplicate prevention, revision-tagged history, and older stored records. They do not exercise real AI, a live inventory service, or MongoDB.
 
 | Owner | Checks to add during implementation |
 | --- | --- |
