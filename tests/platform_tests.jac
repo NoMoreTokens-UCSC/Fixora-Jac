@@ -18,6 +18,8 @@ import from workflow.coordinator { _set_test_handlers }
 import from server.cases { create_case, get_case, list_cases, update_case, start_assessment, advance_case }
 import from server.evidence { upload_evidence, get_evidence, remove_evidence }
 import from server.runtime_compat { _install_runtime_compat }
+import from server.auth { demo_login }
+import from shared.sessions { _issue_session }
 import from jaclang.runtimelib.server { ModuleIntrospector }
 
 glob TOKEN: str = "fixora-unit-test-token-not-a-real-secret";
@@ -107,6 +109,66 @@ test "missing access configuration fails closed" {
     _reset();
     os.environ["FIXORA_ACCESS_TOKEN"] = "short";
     result = list_cases(access_token=TOKEN);
+    assert not result.ok and result.error is not None and result.error.code == "ACCESS_NOT_CONFIGURED";
+}
+
+test "demo login issues short lived browser sessions without returning the shop secret" {
+    _reset();
+    for role in ["customer", "owner"] {
+        email = role + "@fixora.demo";
+        result = demo_login(email, "Fixora123!", role);
+        assert result.ok and result.data["role"] == role;
+        session = result.data["session_token"] as str;
+        assert session != TOKEN and session.startswith("fixora-session.");
+        assert TOKEN not in json.dumps(result.data);
+        assert list_cases(access_token=session).ok;
+    }
+}
+
+test "demo credentials are validated on the server with the selected role" {
+    _reset();
+    for input in [["customer@fixora.demo", "wrong", "customer"],
+        ["owner@fixora.demo", "Fixora123!", "customer"],
+        ["customer@fixora.demo", "Fixora123!", "admin"],
+        ["unknown@fixora.demo", "Fixora123!", "owner"]] {
+        result = demo_login(input[0], input[1], input[2]);
+        assert not result.ok and result.error is not None and result.error.code == "INVALID_CREDENTIALS";
+        assert not result.data;
+    }
+    assert demo_login(" CUSTOMER@FIXORA.DEMO ", "Fixora123!", "customer").ok;
+}
+
+test "expired forged foreign shop and malformed browser sessions are rejected" {
+    _reset();
+    session = _issue_session(TOKEN, "fixora-demo-shop", "customer")["session_token"] as str;
+    pieces = session.split(".");
+    claims = json.loads(base64.urlsafe_b64decode(pieces[1] + "=" * (-len(pieces[1]) % 4)));
+    claims["role"] = "owner";
+    forged_payload = base64.urlsafe_b64encode(json.dumps(claims).encode()).decode().rstrip("=");
+    for candidate in ["fixora-session." + forged_payload + "." + pieces[2],
+        _issue_session(TOKEN, "fixora-demo-shop", "customer", lifetime=-1)["session_token"],
+        _issue_session(TOKEN, "another-shop", "customer")["session_token"],
+        _issue_session("wrong-signing-secret", "fixora-demo-shop", "customer")["session_token"],
+        "fixora-session.malformed", "fixora-session.☃.invalid", "fixora-session." + "x" * 2048] {
+        result = list_cases(access_token=candidate as str);
+        assert not result.ok and result.error is not None and result.error.code == "UNAUTHORIZED";
+    }
+}
+
+test "browser sessions are unique and invalidated by rotating the shop secret" {
+    _reset();
+    first = demo_login("customer@fixora.demo", "Fixora123!", "customer");
+    second = demo_login("customer@fixora.demo", "Fixora123!", "customer");
+    assert first.ok and second.ok and first.data["session_token"] != second.data["session_token"];
+    os.environ["FIXORA_ACCESS_TOKEN"] = "rotated-unit-test-shop-secret";
+    result = list_cases(access_token=first.data["session_token"] as str);
+    assert not result.ok and result.error is not None and result.error.code == "UNAUTHORIZED";
+}
+
+test "demo login fails closed when the private signing secret is not configured" {
+    _reset();
+    os.environ["FIXORA_ACCESS_TOKEN"] = "short";
+    result = demo_login("customer@fixora.demo", "Fixora123!", "customer");
     assert not result.ok and result.error is not None and result.error.code == "ACCESS_NOT_CONFIGURED";
 }
 

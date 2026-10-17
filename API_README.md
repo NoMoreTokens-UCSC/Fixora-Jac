@@ -19,6 +19,8 @@ The case/evidence APIs, coordinator and all five specialist modules are implemen
 
 ## Start and authenticate
 
+The web frontend now calls these same-origin APIs. Sign in with a demo email and password. The server reads `FIXORA_ACCESS_TOKEN` privately and returns a short-lived browser session; the browser never receives that shop secret, the model key or MongoDB URI. Case creation, description/model corrections, image upload/download/removal, case listing/reload and bounded assessment advancement are connected. Shop replies, owner inspection records and approval decisions are not part of the current API. See [DEVELOPMENT.md](DEVELOPMENT.md) for the browser walkthrough.
+
 Run from the repository root inside Linux/WSL:
 
 ```bash
@@ -29,7 +31,7 @@ jac start main.jac --no-client
 
 Default base URL: `http://localhost:8000`. Use the actual port shown at startup. Hosting replaces this with your JacHammer application URL.
 
-The server needs MongoDB settings and `FIXORA_ACCESS_TOKEN` in its environment or local `.env`. The token must contain at least 16 characters. Each application request supplies that token in the **JSON body** as `access_token`.
+The server needs MongoDB settings and `FIXORA_ACCESS_TOKEN` in its environment or local `.env`. The token must contain at least 16 characters. Each protected application request supplies either that token (manual/server API clients) or a valid browser session in the **JSON body** as `access_token`. `demo_login` is the exception: it takes demo credentials without an existing token.
 
 ```json
 {
@@ -37,9 +39,33 @@ The server needs MongoDB settings and `FIXORA_ACCESS_TOKEN` in its environment o
 }
 ```
 
-This token is the shop's demo access secret, not a Jac user JWT. Sending an `Authorization: Bearer ...` header alone does not satisfy this application's access check. Do not hardcode the secret in a shared client bundle; supply it at runtime.
+The shop secret is not a Jac user JWT. Sending an `Authorization: Bearer ...` header alone does not satisfy this application's access check. Never hardcode or auto-export the shop secret into the frontend. The browser obtains its separate session through `demo_login`; direct API clients can continue supplying the shop secret.
 
 The server reads `.env` without exporting its contents into the process. For hosted environment secrets, prefer `FIXORA_MONGODB_URI`; the application also accepts local `MONGODB_URI`. The prefixed name avoids also configuring Jac's independent graph-persistence backend. Database URIs are never client API parameters.
+
+### Browser login
+
+`POST /function/demo_login` is public and takes:
+
+```json
+{
+  "email": "customer@fixora.demo",
+  "password": "Fixora123!",
+  "role": "customer"
+}
+```
+
+For the owner view use `owner@fixora.demo`, the same demo password and role `owner`. The server checks the email/password/role together; client-side form validation is not the access gate.
+
+```bash
+curl -sS -X POST http://localhost:8000/function/demo_login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"customer@fixora.demo","password":"Fixora123!","role":"customer"}'
+```
+
+The standard nested result's `data` contains `session_token`, `role` and `expires_at` (Unix seconds). The token is signed, shop-scoped and expires after eight hours. Pass it as `access_token` on the existing protected endpoints. Expired, modified or wrong-shop sessions return `UNAUTHORIZED`; bad login details return `INVALID_CREDENTIALS`. Missing server signing configuration fails closed. The login response never contains `FIXORA_ACCESS_TOKEN` itself.
+
+The UI stores only this temporary session in sessionStorage and clears it on sign-out. Sessions are stateless; sign-out does not revoke a copied token on the server. Secret rotation invalidates issued sessions. Both demo accounts are public and share the shop queue; production identity/ownership authorization is out of scope.
 
 ## Response format
 
@@ -104,10 +130,11 @@ All endpoint response examples below show **only the inner application's `data` 
 
 ## Endpoint summary
 
-All ten application endpoints use **POST** and `Content-Type: application/json`, including read operations.
+The ten protected application endpoints and public demo login use **POST** and `Content-Type: application/json`, including read operations.
 
 | Endpoint | Purpose | Main response payload |
 | --- | --- | --- |
+| `/function/demo_login` | Validate demo credentials; issue browser session (no access token required) | `session_token`, `role`, `expires_at` |
 | `/function/platform_status` | Check database access and specialist availability | Database and specialist status |
 | `/function/create_case` | Save a new intake case | `case` |
 | `/function/get_case` | Fetch a saved case and current results | `case` |
@@ -761,7 +788,7 @@ Use the matching invoice/product pair and description from `fixtures/scenarios.j
 
 ### Browser fetch
 
-Pass a runtime-entered access token. Same-origin requests work when the interface is served alongside the Jac backend. A separately hosted frontend needs an appropriate development proxy or tested server CORS configuration; this scaffold does not promise cross-origin access.
+Obtain a temporary session through `demo_login`, then pass it on protected requests. Customers do not enter the private shop token. Same-origin requests work when the interface is served alongside the Jac backend. A separately hosted frontend needs an appropriate development proxy or tested server CORS configuration; this scaffold does not promise cross-origin access.
 
 ```javascript
 async function callFixora(operation, payload, accessToken, baseUrl = "") {
@@ -782,7 +809,12 @@ async function callFixora(operation, payload, accessToken, baseUrl = "") {
   return result.data;
 }
 
-// accessToken comes from your runtime UI, not a bundled secret constant.
+async function signInDemo(email, password, role) {
+  const { session_token } = await callFixora("demo_login", { email, password, role });
+  return session_token;
+}
+
+// accessToken is the temporary session from signInDemo, never the shop secret.
 async function loadSavedCase(caseId, accessToken) {
   const { case: savedCase } = await callFixora("get_case", { case_id: caseId }, accessToken);
   return savedCase;

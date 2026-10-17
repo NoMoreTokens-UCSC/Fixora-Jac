@@ -1,4 +1,4 @@
-# Client-only records. The asynchronous gateway owns persistence and transitions.
+# Client view records. MongoDB records and specialist findings are authoritative.
 cl obj:pub Message {
     has id: str = "";
     has role: str = "assistant";
@@ -33,7 +33,7 @@ cl obj:pub CaseRecord {
     has customer_id: str = "alex";
     has title: str = "New laptop complaint";
     has description: str = "";
-    has model: str = "Studio 14";
+    has model: str = "Fixora Demo FD-100";
     has scenario: str = "complete";
     has status: str = "draft";
     has coverage: str = "needs_review";
@@ -50,24 +50,25 @@ cl obj:pub CaseRecord {
     has clarified: bool = False;
     has retried: bool = False;
     has updated_at: str = "";
+    has backend: any = None;
+    has failure: str = "";
 }
 
 cl obj:pub Assessment {
-    has purchase_date: str = "2026-03-12";
-    has expiry_date: str = "2027-03-12";
-    has invoice: str = "INV-DEMO-1048";
-    has serial: str = "FX-DEMO-0142";
-    has seller: str = "Fixora laptop shop (fictional)";
-    has policy: str = "Demo shop policy v1 · W-01 / R-02";
-    has eligibility: str = "Within the sample 12-month period";
-    has coverage: str = "Potentially covered";
-    has rationale: str = "The sample purchase is within the warranty period. An owner must confirm the supported repair condition.";
-    has observation: str = "The sample product label identifies the model. The complaint reports intermittent charging; these images cannot establish an internal electrical fault.";
-    has limitation: str = "Fixture findings only. Your uploaded images are previews and have not been analysed by AI.";
-    has repair: str = "Charging connector inspection / replacement";
-    has part: str = "FX-CH14 · Studio 14 charging connector";
-    has stock: int = 4;
-    has part_minor: int = 4500;
-    has labour_minor: int = 2500;
-    has next_action: str = "The shop will review the evidence and proposal.";
+    has purchase_date: str = "Not extracted";
+    has expiry_date: str = "Not evaluated";
+    has invoice: str = "Not extracted";
+    has serial: str = "Not extracted";
+    has seller: str = "Not extracted";
+    has policy: str = "Not evaluated";
+    has eligibility: str = "Date eligibility has not been established.";
+    has coverage: str = "Not evaluated";
+    has rationale: str = "Run the assessment to evaluate warranty coverage.";
+    has observation: str = "No observations yet.";
+    has limitation: str = "AI observations are provisional and do not confirm an internal fault.";
+    has next_action: str = "Attach an invoice and product photos, then assess the complaint.";
+    has mode: str = "Not assessed";
+    has invoice_total: str = "Not extracted";
+    has options: list[any] = [];
+    has clauses: list[any] = [];
 }

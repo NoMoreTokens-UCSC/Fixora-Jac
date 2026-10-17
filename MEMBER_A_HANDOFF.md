@@ -10,13 +10,13 @@ jac install --dev
 jac start main.jac --no-client
 ```
 
-The integration entrypoint registers all ten APIs and renders Member C's UI at `/`. The UI still uses its browser-local demo gateway; it is not yet an API client. Start both with `jac start main.jac`, or use `--no-client` for API-only checks. The default port is 8000; use the port actually reported at startup. With the byLLM/serve dependencies installed, the full server exposes `/docs`, `/openapi.json` and `/healthz`. The earlier minimal fallback exposed `/functions` and `/walkers`; those discovery paths are not available on the full server. Function POST routes and the response envelope are unchanged.
+The integration entrypoint registers all ten APIs and renders Member C's UI at `/`. The UI gateway now calls those APIs with an automatically issued browser session after server-validated demo login and maps returned case/evidence/specialist records into its views. It no longer seeds browser-local sample cases. Start both with `jac start main.jac`, or use `--no-client` for API-only checks. The default port is 8000; use the port actually reported at startup. The full server exposes `/docs`, `/openapi.json` and `/healthz`. Function POST routes and response envelopes are unchanged. Customer updates revise the case description; independent shop conversation, inspection and approval APIs remain deferred. See [DEVELOPMENT.md](DEVELOPMENT.md).
 
 Configure `MONGODB_URI` in local `.env`, `MONGODB_DB`, and a `FIXORA_ACCESS_TOKEN` of at least 16 characters. Process environment overrides `.env`. The application reads the file without exporting its contents into the process. A local access token was generated during backend setup; retrieve it directly from your own `.env`, without sharing credentials in source control. Each teammate needs their own local environment settings. The examples contain no actual secrets.
 
 For hosted process secrets, prefer `FIXORA_MONGODB_URI` over `MONGODB_URI`. The application accepts either; the prefixed setting keeps Jac's independent graph-runtime backend from also switching to MongoDB. This behavior was confirmed in the installed 0.34.6 runtime source.
 
-Every application operation requires `access_token`. This is a single-shop demo gate, not a multi-user authentication system. Supply it at runtime; do not compile its value into the frontend. Use HTTPS when hosted.
+All ten protected application operations require `access_token`: direct clients may use the private shop secret; browsers use a separate signed session issued by `POST /function/demo_login` after demo email/password validation. That login endpoint needs no existing token. The private shop token stays on the server and doubles as the session signing secret. Sessions expire after eight hours; sign-out clears browser storage without server-side token revocation. This is a shared single-shop demo, not production customer isolation. Use HTTPS when hosted.
 
 ## Member C: server operations
 

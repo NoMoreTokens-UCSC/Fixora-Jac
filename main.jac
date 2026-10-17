@@ -6,6 +6,7 @@ import from server.runtime_compat { _install_runtime_compat }
 import from server.cases { create_case, get_case, list_cases, update_case,
     start_assessment, advance_case, platform_status }
 import from server.evidence { upload_evidence, get_evidence, remove_evidence }
+import from server.auth { demo_login }
 
 with entry { _install_runtime_compat(); }
 

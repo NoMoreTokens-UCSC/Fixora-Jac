@@ -4,6 +4,7 @@ import hmac;
 import from pathlib { Path }
 import from dotenv { dotenv_values }
 import from shared.contracts { FixoraError }
+import from shared.sessions { _valid_session }
 
 obj Settings {
     has mongodb_uri: str;
@@ -47,11 +48,13 @@ def _config_value(name: str, local_values: dict[str, str | None], fallback: str)
 }
 
 def _require_access(access_token: str) {
-    secret = _get_settings().access_token;
+    settings = _get_settings();
+    secret = settings.access_token;
     if len(secret) < 16 {
         raise FixoraError("ACCESS_NOT_CONFIGURED", "Configure FIXORA_ACCESS_TOKEN with at least 16 characters on the server.");
     }
-    if not hmac.compare_digest(access_token.encode("utf-8"), secret.encode("utf-8")) {
-        raise FixoraError("UNAUTHORIZED", "A valid demo access token is required.");
+    if not hmac.compare_digest(access_token.encode("utf-8"), secret.encode("utf-8"))
+        and not _valid_session(secret, settings.shop_id, access_token) {
+        raise FixoraError("UNAUTHORIZED", "Sign in again or supply a valid API access token.");
     }
 }

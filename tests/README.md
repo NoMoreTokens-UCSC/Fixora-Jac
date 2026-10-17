@@ -1,13 +1,13 @@
 # Verification plan — shared ownership
 
-`platform_tests.jac` contains 23 tests. `specialist_tests.jac` contains 15 tests covering dates, identity, compatibility, price arithmetic, structured byLLM calls with MockLLM, explicit fixture mode and all three coordinator scenarios. Regression checks construct real provider schemas, count actual image attachments, and verify typed HTTP defaults. Run from the repository root inside Linux/WSL:
+`platform_tests.jac` contains 28 tests. `specialist_tests.jac` contains 15 tests covering dates, identity, compatibility, price arithmetic, structured byLLM calls with MockLLM, explicit fixture mode and all three coordinator scenarios. Regression checks construct real provider schemas, count actual image attachments, and verify typed HTTP defaults. Run from the repository root inside Linux/WSL:
 
 ```bash
 PYTEST_XDIST_AUTO_NUM_WORKERS=1 jac test tests/platform_tests.jac -v
 PYTEST_XDIST_AUTO_NUM_WORKERS=1 jac test tests/specialist_tests.jac -v
 ```
 
-The tests use synthetic images and an isolated in-memory MongoDB substitute. They do not write to the real database or invoke an LLM. One worker avoids starting a compiler/runtime for every CPU core on shared hackathon laptops.
+Platform checks include login validation, expiry, tampering, wrong-shop sessions and secret rotation. The tests use synthetic images and an isolated in-memory MongoDB substitute. They do not write to the real database or invoke an LLM. One worker avoids starting a compiler/runtime for every CPU core on shared hackathon laptops.
 
 For an opt-in check of real Gemini/model calls through HTTP and real MongoDB:
 
@@ -24,14 +24,23 @@ This verifier consumes provider quota, uses a fresh temporary database, and clea
 | B | Missing invoice fields; future/expiry/month-end dates; identity conflicts; uncertain causes; exact compatibility; out-of-stock handling; integer-money totals |
 | C | Customer chat/attachment validation and retained inputs; actual stage status; conversation/case reload; evidence links; clarification; owner dashboard inspection/review controls; published versus internal messages |
 
-## UI demo checks
+## Frontend API checks
 
-The integration compiler baseline is Jac **0.34.6**, matching `.jac-version` and `jac.toml`. Member C originally checked the UI with 0.34.13. Build the combined client and run its isolated IndexedDB gateway suite with:
+The integration compiler baseline is Jac **0.34.6**, matching `.jac-version` and `jac.toml`. Build the combined client and run its isolated HTTP-contract gateway suite with:
 
 ```bash
 bash scripts/test-ui.sh
 ```
 
-The UI gateway suite covers its browser-local sample cases, messages, evidence, review/correction flows and stale-tab handling. These tests do not connect the UI to MongoDB or Gemini. Historical manual browser checks are in [UI_QA.md](UI_QA.md); backend live extraction and restart checks are in [AGENT_VERIFICATION.md](../AGENT_VERIFICATION.md).
+The 16 gateway tests cover server-validated sign-in, automatic browser sessions, legacy-token cleanup, nested HTTP/application errors, network ambiguity, pagination, real contract mapping, selected-case evidence retrieval, model IDs, base64 uploads, returned revisions/assessment IDs, stale changes, partial/failed results, catalogue currencies, corrections and description updates. HTTP is stubbed; no real MongoDB or model calls are made.
 
-The backend's MongoDB/GridFS persistence and real extraction are implemented. Connecting the UI gateway to those APIs, server-enforced customer/owner identity, conversation/review persistence, and deployment remain integration work. See [DEVELOPMENT.md](../DEVELOPMENT.md) for current commands and limitations.
+For the emitted frontend gateway against actual HTTP, MongoDB/GridFS and model extraction, build first, then run:
+
+```bash
+FIXORA_CHECK_FRONTEND=true jac run scripts/verify_live_agents.jac
+FIXORA_CHECK_FRONTEND=true FIXORA_CHECK_ALL=true jac run scripts/verify_live_agents.jac
+```
+
+`tests/frontend-live.mjs` runs only through this opt-in verifier. It uploads synthetic images using the compiled gateway, advances the live agents, checks real saved findings, and reloads evidence with fresh client module memory. The verifier uses a temporary database, checks persistence after server restart and cleans up its temporary collections. Live calls consume provider quota. Summary: `.jac/live-agent-check.json`.
+
+Historical fixture-only browser checks are in [UI_QA.md](UI_QA.md). The frontend is connected; server-enforced customer ownership, independent conversations, owner review/inspection APIs and deployment remain out of scope. See [DEVELOPMENT.md](../DEVELOPMENT.md) for current browser instructions and limitations.

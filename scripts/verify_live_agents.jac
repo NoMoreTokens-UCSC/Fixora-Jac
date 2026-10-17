@@ -68,6 +68,9 @@ def _call(operation: str, payload: dict[str, any], token: str) -> dict[str, any]
 }
 
 def _run_scenario(scenario: dict[str, any], token: str) -> dict[str, any] {
+    if os.getenv("FIXORA_CHECK_FRONTEND", "false").lower() == "true" {
+        return _run_frontend_scenario(scenario, token);
+    }
     item = _call("create_case", {"description": scenario["description"], "claimed_model_id": scenario["claimed_model_id"], "submission_id": _new_id()}, token)["case"];
     for kind in ["invoice", "product"] {
         path = Path.cwd() / "fixtures" / (scenario[kind] as str);
@@ -113,6 +116,34 @@ def _run_scenario(scenario: dict[str, any], token: str) -> dict[str, any] {
     return {"outcome": outcome, "case_id": item["id"], "status": item["status"]};
 }
 
+def _run_frontend_scenario(scenario: dict[str, any], token: str) -> dict[str, any] {
+    # Run the compiled browser adapter against the same temporary API/database.
+    # Secrets travel only in child environment variables, never command arguments.
+    runtime = shutil.which("bun");
+    if not runtime {
+        candidates = list((Path.home() / ".cache/jac/rt").glob("**/runtimelib/client/_bun/bun"));
+        if not candidates { raise RuntimeError("BUNDLED_BUN_NOT_FOUND"); }
+        runtime = str(candidates[0]);
+    }
+    if not (Path.cwd() / ".jac/client/compiled/ui/gateway.js").exists() {
+        raise RuntimeError("BUILD_FRONTEND_FIRST");
+    }
+    shutil.copyfile("tests/frontend-live.mjs", ".jac/client/frontend-live.test.mjs");
+    environment = dict(os.environ);
+    environment["FIXORA_TEST_BASE_URL"] = "http://127.0.0.1:" + str(_port);
+    environment["FIXORA_TEST_SCENARIO"] = json.dumps(scenario);
+    completed = subprocess.run([runtime, "test", "frontend-live.test.mjs"], cwd=".jac/client", env=environment,
+        capture_output=True, timeout=240);
+    if completed.returncode != 0 {
+        # The child handles synthetic fixtures only; keep diagnostic output local.
+        (Path.cwd() / ".jac/frontend-live-test.log").write_text(completed.stdout.decode(errors="replace") + completed.stderr.decode(errors="replace"));
+        raise RuntimeError("FRONTEND_GATEWAY_CHECK_FAILED");
+    }
+    verified = json.loads((Path.cwd() / ".jac/frontend-live-result.json").read_text());
+    print(scenario["id"], "compiled frontend gateway:", verified["status"], flush=True);
+    return verified as dict[str, any];
+}
+
 with entry:__main__ {
     settings = _get_settings();
     if not settings.model { print("Configure FIXORA_MODEL before a live check."); sys.exit(1); }
@@ -127,6 +158,7 @@ with entry:__main__ {
     client = MongoClient(settings.mongodb_uri, serverSelectionTimeoutMS=10000, socketTimeoutMS=15000);
     summary: dict[str, any] = {"checked_at": datetime.now(ZoneInfo(settings.timezone)).isoformat(), "model": settings.model,
         "demo_mode": False, "scenarios": [], "restart_persistence": False, "cleanup_confirmed": False};
+    summary["frontend_gateway"] = os.getenv("FIXORA_CHECK_FRONTEND", "false").lower() == "true";
     exit_code = 0;
     try {
         seed = subprocess.run([shutil.which("jac") or "jac", "run", "data/seed.jac"], env=environment, capture_output=True, timeout=60);

@@ -2,9 +2,9 @@
 
 Warranty assessment and repair recommendations for a single electronics shop, built with Jac and MongoDB.
 
-**Integration branch: Member A/B backend and Member C UI share one Jac 0.34.6 entrypoint.** Invoice/photo extraction uses typed byLLM calls; warranty, compatibility, pricing and the final report use fixed rules. The backend's live Gemini path was verified using synthetic evidence. The customer chat, dummy login and shop dashboard are present, with their existing browser-local demo gateway. Connecting that gateway to the live APIs and JacHammer deployment remain separate integration work. See [DEVELOPMENT.md](DEVELOPMENT.md) for the combined setup, [MEMBER_B_HANDOFF.md](MEMBER_B_HANDOFF.md) for model configuration, and [MEMBER_A_HANDOFF.md](MEMBER_A_HANDOFF.md) for API contracts.
+**The frontend now connects to the Jac 0.34.6 backend APIs.** Create MongoDB cases, upload invoice/product images to GridFS, run configured model extraction, and view saved warranty, repair and inventory findings through the browser. Sign in with the demo email and password; the server automatically creates a short-lived browser session. The private shop token, model keys and database credentials stay on the server. See [DEVELOPMENT.md](DEVELOPMENT.md) for setup and the first manual test, [MEMBER_B_HANDOFF.md](MEMBER_B_HANDOFF.md) for model configuration, and [MEMBER_A_HANDOFF.md](MEMBER_A_HANDOFF.md) for API contracts.
 
-Verification: 38 offline tests pass, and the three fixture scenarios pass over the full HTTP API with real MongoDB. Saved findings survive a server restart. The development database contains the fictional catalogue (1 policy, 3 products, 3 repairs, 9 stock records); temporary verification collections are removed after each live check. Restart the development server after pulling these changes; use the current demo token in your local `.env`. Run `jac run scripts/verify_live_agents.jac` for an opt-in check using the configured model and synthetic uploads; it makes real provider requests.
+Verification: **43 backend and 16 frontend contract tests pass**, and the complete live scenario passed through the compiled frontend gateway, HTTP, MongoDB/GridFS and Gemini. Additional live checks encountered `MODEL_RATE_LIMIT`; the UI preserves evidence and shows an explicit retry state. Earlier API-only checks verified all three fixture scenarios and persistence across server restart. The fictional catalogue contains 1 policy, 3 products, 3 repairs and 9 stock records. Temporary verification records are cleaned up. Restart the development server after pulling these changes to register the new server-side demo login endpoint. See [tests/FRONTEND_API_QA.md](tests/FRONTEND_API_QA.md) for the connected-browser checks.
 
 For every endpoint's parameters, response shapes, errors, and curl/Python/browser examples, see [API_README.md](API_README.md).
 
@@ -24,15 +24,15 @@ Member A owns changes to shared contracts and configuration. Agree interfaces to
 
 - One shop, laptops, three supported models, English.
 - Invoice/product-image intake, evidence extraction, policy evaluation, conditional routing, repair and compatible-part recommendations, saved case results.
-- Backend business records use MongoDB and evidence uses GridFS. The current UI demo separately uses browser IndexedDB; its demo cases are not MongoDB cases.
+- Business records use MongoDB and evidence uses GridFS. The UI reads these through the same-origin HTTP APIs; it no longer seeds browser-local cases.
 - Jac coordinates bounded stages: document, vision, coverage, repair/parts, resolution.
 - Exactly two primary interfaces: customer chat and shop dashboard. Intake, evidence, findings, saved cases, and review controls live within those views.
-- Customer conversations, follow-up clarification, owner inspection/corrections, approval/rejection, and decision history are implemented in the browser-local demo. The existing backend has no conversation or approval endpoints.
+- Customer updates revise the saved problem description and require reassessment. Corrections and evidence changes are persisted. The existing backend has no independent chat, owner inspection or approval endpoints; unsupported controls are unavailable.
 - Automatic decisions require explicit versioned shop rules and sufficient evidence; unresolved cases go to owner review. Unknown diagnoses remain provisional.
-- Production customer isolation and owner actions require server-enforced access. The current dummy login and client-side filtering are UI demonstrations; the backend separately requires the configured demo access token.
+- Production customer isolation and owner actions require additional server-enforced access. The server validates the public demo credentials and issues signed sessions; both roles still access the same shop queue.
 - Turnaround estimates, PDF intake, trained ML models, supplier integrations, stock mutations, authentication dashboards, and extra product categories are deferred.
 
-[UI_SPECIFICATION.md](UI_SPECIFICATION.md) describes Member C's two-view UI and review experience. [ARCHITECTURE_STRATEGY.md](ARCHITECTURE_STRATEGY.md) describes the broader target. The backend is implemented; the UI's typed demo gateway still needs an adapter to those APIs and additional backend support for conversations/review. UI decisions remain browser-local during that work.
+[UI_SPECIFICATION.md](UI_SPECIFICATION.md) describes the broader two-view UI and review target. [ARCHITECTURE_STRATEGY.md](ARCHITECTURE_STRATEGY.md) describes the architecture. The HTTP gateway is connected; backend conversations/review, production authentication and JacHammer deployment remain future work.
 
 ## Project map
 
@@ -61,7 +61,7 @@ File ownership and responsibilities are recorded in each source file. Member A's
 3. Create your local `.env` from `.env.example` if needed. Keep your existing MongoDB URI, model key and access token private. The backend already reads `.env` without exporting it. Prefer `FIXORA_MONGODB_URI` for hosted application persistence.
 4. Run `bash scripts/jac.sh run data/seed.jac` only when you want to load/replace the fictional catalogue records.
 5. Run `bash scripts/jac.sh start main.jac` to serve the UI at `/` and the ten APIs at `/function/<name>`. Use `--dev` for UI development, or `--no-client` for an API-only process. Windows users can use the `jac.ps1` wrapper described in [DEVELOPMENT.md](DEVELOPMENT.md).
-6. Use the UI's documented dummy accounts for browser-local examples. Test live agents through the API examples or `scripts/verify_live_agents.jac`; the current UI gateway does not send those requests yet.
+6. Sign in using a documented demo email and password. No token entry is required. Create a case, upload evidence and choose **Assess complaint** to test MongoDB and the configured model through the frontend. Use `FIXORA_DEMO_MODE=false` for live model calls. See [DEVELOPMENT.md](DEVELOPMENT.md) for exact test images and expected findings.
 
 MongoDB is the authoritative business store. Reconstruct temporary Jac graphs from repository records; do not create a second persistent copy of case data in the Jac root graph.
 
