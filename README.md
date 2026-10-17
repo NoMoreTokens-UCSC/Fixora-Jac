@@ -4,6 +4,8 @@ Warranty assessment and repair recommendations for a single electronics shop, bu
 
 **Status: Member A backend implemented and verified on Jac 0.34.6.** Case operations, MongoDB/GridFS persistence, shared contracts, conditional stage coordination, and catalogue loading are implemented. All 21 platform tests pass; real HTTP upload/download and persistence across a server restart were verified using a temporary database. Member B's specialists and Member C's interface remain placeholders. Read [MEMBER_A_HANDOFF.md](MEMBER_A_HANDOFF.md) for the current API and specialist contracts.
 
+For every endpoint's parameters, response shapes, errors, and curl/Python/browser examples, see [API_README.md](API_README.md).
+
 ## Team starting points
 
 | Member | Focus | Start here | First handoff |
