@@ -1,0 +1,30 @@
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Jac, Python and frontend generated files
+.jac/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+node_modules/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local uploads and temporary outputs; durable files belong in MongoDB GridFS
+uploads/
+storage/
+tmp/
+*.log
+
+# Machine/editor files
+.DS_Store
+Thumbs.db
+.idea/

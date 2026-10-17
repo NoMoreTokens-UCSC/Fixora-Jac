@@ -1,0 +1,12 @@
+# Owner: Member A — platform and deployment.
+# Metadata scaffold only; verify against the shared Jac 0.34.6 (Linux x86_64) runtime.
+# This comment records the baseline; it does not install or enforce that version.
+# TODO: Add the supported full-stack project configuration and dependency declarations.
+# TODO: Configure PyMongo and byLLM after the version-specific setup check.
+# TODO: Configure the selected model without committing API keys.
+# The comment-only main.jac does not provide a runnable application yet.
+
+[project]
+name = "fixora-ai"
+version = "0.1.0"
+entry-point = "main.jac"
