@@ -1,11 +1,11 @@
 # Verification plan — shared ownership
 
-No test code is implemented in this scaffold. Add focused checks alongside the behavior each member creates.
+The interactive UI gateway has eight regression tests in `gateway.test.mjs`, using isolated in-memory IndexedDB. Run `bash scripts/test-ui.sh` from WSL with the preview server stopped; the runner builds emitted client code before testing. These checks cover local persistence, scoped search, uploads, messages, clarification/inspection, corrections, decisions, retry, stock, and stale writes. They do not exercise real AI or MongoDB.
 
 | Owner | Checks to add during implementation |
 | --- | --- |
 | A | MongoDB restart persistence; GridFS round trip; revision/stage lease checks; repeated requests; stale-result rejection; database/provider failure handling |
 | B | Missing invoice fields; future/expiry/month-end dates; identity conflicts; uncertain causes; exact compatibility; out-of-stock handling; integer-money totals |
-| C | Intake validation and retained inputs; actual stage status; saved-case reload; evidence links; clarification and inspection recommendations |
+| C | Customer chat/attachment validation and retained inputs; actual stage status; conversation/case reload; evidence links; clarification; owner dashboard inspection/review controls; published versus internal messages |
 
-Integrate and run the three scenarios in `fixtures/README.md` together before polishing the demo. Confirm the testing conventions supported by the shared Jac 0.34.6 runtime before choosing test filenames or commands. Human approval and review workflow tests are deferred with those features.
+The current compiler baseline is Jac 0.34.13. The checks above validate the UI demo boundary. MongoDB restart durability, server-enforced customer isolation, authenticated owner actions, real extraction, and live deployment still require implementation and dedicated integration tests. See `DEVELOPMENT.md` for current run commands and limitations.
