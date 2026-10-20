@@ -9,6 +9,7 @@ Verification: 38 offline tests pass, and the three fixture scenarios pass over t
 For every endpoint's parameters, response shapes, errors, and curl/Python/browser examples, see [API_README.md](API_README.md).
 
 See [AGENT_VERIFICATION.md](AGENT_VERIFICATION.md) for the live Gemini results, fixes and rerun instructions.
+**Status: runnable UI prototype.** Customer chat and the shop dashboard work with labelled demo scenarios, generated photography, dark mode, browser-local persistence, and owner review. Real AI inference, MongoDB/GridFS, production authentication, and deployment remain unimplemented. See [DEVELOPMENT.md](DEVELOPMENT.md) for run commands and verification.
 
 ## Team starting points
 
@@ -16,7 +17,7 @@ See [AGENT_VERIFICATION.md](AGENT_VERIFICATION.md) for the live Gemini results, 
 | --- | --- | --- | --- |
 | A | Platform, coordinator, MongoDB, deployment | `shared/`, `data/`, `server/`, `workflow/`, `main.jac`, `jac.toml` | Publish shared types and operation signatures; persist and reload a case and evidence file. |
 | B | Invoice/photo extraction, warranty rules, repair recommendations | `specialists/`, `rules/`, `fixtures/` | Supply validated specialist results and the three agreed scenario fixtures. |
-| C | Intake, saved cases, case workspace, findings and demo | `ui/`, `assets/` | Render the shared fixtures, then connect Member A's server operations. |
+| C | Customer chat, shop dashboard, case details, findings and review | `ui/`, `assets/` | Render the shared fixtures in the two views, then connect Member A's server operations. |
 
 Member A owns changes to shared contracts and configuration. Agree interfaces together before implementing consumers. Member B owns fixture content; Member A owns the seed entry point that eventually loads it. Keep the first integration checkpoint at hour two.
 
@@ -24,13 +25,15 @@ Member A owns changes to shared contracts and configuration. Agree interfaces to
 
 - One shop, laptops, three supported models, English.
 - Invoice/product-image intake, evidence extraction, policy evaluation, conditional routing, repair and compatible-part recommendations, saved case results.
-- MongoDB stores business records; GridFS stores evidence files.
+- The production persistence target is MongoDB records and GridFS files. The current UI prototype uses browser IndexedDB.
 - Jac coordinates bounded stages: document, vision, coverage, repair/parts, resolution.
-- Human-review functionality is deferred: no approval screen, approval endpoint, review decision persistence, or technician inspection-entry workflow in this scaffold.
-- Missing information and inspection remain possible recommendations. Unknown diagnoses must remain provisional.
+- Exactly two primary interfaces: customer chat and shop dashboard. Intake, evidence, findings, saved cases, and review controls live within those views.
+- Customer conversations, follow-up clarification, owner inspection/corrections, approval/rejection, and persisted decision history are implemented in the browser-local demo.
+- Automatic decisions require explicit versioned shop rules and sufficient evidence; unresolved cases go to owner review. Unknown diagnoses remain provisional.
+- Customers access only their own cases; owner-only details and actions require server-enforced access. Full account-management dashboards are not required.
 - Turnaround estimates, PDF intake, trained ML models, supplier integrations, stock mutations, authentication dashboards, and extra product categories are deferred.
 
-The architecture document's latest explicit MVP note excludes human review, although some older sections still describe it. This scaffold follows that exclusion; review/approval sections in that document are future work. See [ARCHITECTURE_STRATEGY.md](ARCHITECTURE_STRATEGY.md) for the broader architecture and schedule.
+The latest user direction restores owner review and adds customer chat. [UI_SPECIFICATION.md](UI_SPECIFICATION.md) records the current two-view scope and supersedes earlier UI/review exclusions. See [ARCHITECTURE_STRATEGY.md](ARCHITECTURE_STRATEGY.md) for the broader architecture and original schedule. The UI is implemented with a typed demo gateway. Backend source placeholders remain for the later live integration.
 
 ## Project map
 
@@ -44,8 +47,8 @@ workflow/                      A  Coordinator, transient case graph, transitions
 data/                          A  MongoDB connection, repositories, GridFS, seeding
 specialists/                   B  Document, vision, coverage, repair/parts, resolution
 rules/                         B  Policy/date, compatibility, money calculations
-fixtures/                      B  Synthetic catalogue, five evidence images, three scenarios
-ui/                            C  App shell, intake, saved cases, workspace and findings
+fixtures/                      B  Empty catalogue placeholders and scenario guidance
+ui/                            C  Customer chat, shop dashboard, embedded case details and review
 assets/                        C  Guidance for small, shareable visual assets
 tests/                       A/B/C Platform and specialist tests; UI checks to follow
 ```

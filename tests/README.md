@@ -22,6 +22,6 @@ This verifier consumes provider quota, uses a fresh temporary database, and clea
 | --- | --- |
 | A | Implemented: access/validation checks, GridFS round trips, repeated requests, pagination, conditional routing, stage leases, stale-result rejection, archival, seed validation/upserts. Also verified real HTTP/MongoDB persistence across server restart using a temporary database. |
 | B | Missing invoice fields; future/expiry/month-end dates; identity conflicts; uncertain causes; exact compatibility; out-of-stock handling; integer-money totals |
-| C | Intake validation and retained inputs; actual stage status; saved-case reload; evidence links; clarification and inspection recommendations |
+| C | Customer chat/attachment validation and retained inputs; actual stage status; conversation/case reload; evidence links; clarification; owner dashboard inspection/review controls; published versus internal messages |
 
 Integrate and run the three scenarios in `fixtures/README.md` together before polishing the demo. Follow the Jac 0.34.6 conventions demonstrated by the existing test file; avoid the `test_*.jac` naming pattern. Human approval and review workflow tests are deferred with those features.

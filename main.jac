@@ -10,3 +10,11 @@ with entry { _install_runtime_compat(); }
 
 # Member C: export a client app from ui/app.jac, then coordinate adding the
 # client import/app wrapper here. Start the current backend with --no-client.
+import from .ui.app { Fixora }
+import ".styles.global.css";
+import ".ui.styles.css";
+import ".ui.login.css";
+import ".ui.readability.css";
+import ".ui.login-feature.css";
+
+def:pub app() -> JsxElement { return <Fixora/>; }
