@@ -1,27 +1,32 @@
-# Verification plan — shared ownership
+# Fixora verification
 
-`platform_tests.jac` contains 23 tests. `specialist_tests.jac` contains 15 tests covering dates, identity, compatibility, price arithmetic, structured byLLM calls with MockLLM, explicit fixture mode and all three coordinator scenarios. Regression checks construct real provider schemas, count actual image attachments, and verify typed HTTP defaults. Run from the repository root inside Linux/WSL:
-
-```bash
-PYTEST_XDIST_AUTO_NUM_WORKERS=1 jac test tests/platform_tests.jac -v
-PYTEST_XDIST_AUTO_NUM_WORKERS=1 jac test tests/specialist_tests.jac -v
-```
-
-The tests use synthetic images and an isolated in-memory MongoDB substitute. They do not write to the real database or invoke an LLM. One worker avoids starting a compiler/runtime for every CPU core on shared hackathon laptops.
-
-For an opt-in check of real Gemini/model calls through HTTP and real MongoDB:
+From the project root in WSL, use the shared Jac 0.34.13 runtime:
 
 ```bash
-jac run scripts/verify_live_agents.jac
-FIXORA_CHECK_ALL=true jac run scripts/verify_live_agents.jac
+bash scripts/whatsapp.sh setup
+bash scripts/whatsapp.sh test
 ```
 
-This verifier consumes provider quota, uses a fresh temporary database, and cleans up its test collections. It leaves `.env` and the normal development database unchanged. Results are written to `.jac/live-agent-check.json`. The first command checks the complete path; the second includes clarification and inspection routes.
+This runs:
 
-| Owner | Verification ownership |
-| --- | --- |
-| A | Implemented: access/validation checks, GridFS round trips, repeated requests, pagination, conditional routing, stage leases, stale-result rejection, archival, seed validation/upserts. Also verified real HTTP/MongoDB persistence across server restart using a temporary database. |
-| B | Missing invoice fields; future/expiry/month-end dates; identity conflicts; uncertain causes; exact compatibility; out-of-stock handling; integer-money totals |
-| C | Customer chat/attachment validation and retained inputs; actual stage status; conversation/case reload; evidence links; clarification; owner dashboard inspection/review controls; published versus internal messages |
+- Python adapter/worker tests: signed and durable webhooks, deduplication, owner sessions/origin checks, natural intake schemas, evidence classification, customer isolation, background assessment, restarts, revision changes, opt-out, service windows and uncertain delivery.
+- Voice/enquiry tests: bounded Meta audio download, multipart transcription, cached transcripts on retry/restart, product/part/accessory facts, missing/ambiguous matches, no repair case for shopping, and private owner notes. These use simulated provider boundaries, not live audio inference.
+- Jac platform/specialist tests: access control, GridFS validation, stage leases, stale results, fixed rules, typed byLLM output/schema construction, recorded fixtures, identity conflicts and inspection boundaries.
+- Jac owner tests: protected operations, current-assessment review, approval invalidation, private notes, inspection revisions and history.
+- Client build and emitted gateway/render tests: cookie requests, saved evidence/findings/currency, revision conflicts, session expiry, private/public operations, owner-only sign-in and empty inbox rendering.
 
-Integrate and run the three scenarios in `fixtures/README.md` together before polishing the demo. Follow the Jac 0.34.6 conventions demonstrated by the existing test file; avoid the `test_*.jac` naming pattern. Human approval and review workflow tests are deferred with those features.
+Offline tests use synthetic inputs and isolated in-memory storage. They do not send WhatsApp messages, call a model, or alter saved customer records. One Jac test worker avoids redundant compiler processes.
+
+## Real storage and HTTP
+
+```bash
+bash scripts/whatsapp.sh verify
+```
+
+This starts Jac against an isolated, randomly named temporary database and exercises the signed receiver, worker, real case/evidence HTTP API, owner API, private notes, review and persistence across server restart. Its Meta transport/intake parsing are explicit test doubles; evidence analysis uses the labelled recorded fixtures. Temporary collections/records are removed. See `.jac/whatsapp-verification.json` and `.jac/whatsapp-integration.log`.
+
+## Live verification
+
+Follow [WHATSAPP.md](../WHATSAPP.md) to configure the Meta test number, permitted recipient, callback and live model. Confirm the reply on the real phone and check that extraction findings say `live_model`.
+
+The earlier optional `scripts/verify_live_agents.jac` checks direct live model/backend calls, consumes provider quota, and does not exercise WhatsApp. The new integration verifier and all offline checks make no paid model requests.

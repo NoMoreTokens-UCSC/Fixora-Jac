@@ -1,5 +1,4 @@
 # Owner: Member A. Adapters call Member B's run_stage(context) implementations.
-import importlib;
 import from datetime { datetime }
 import from zoneinfo { ZoneInfo }
 import from concurrent.futures { ThreadPoolExecutor, TimeoutError }
@@ -9,6 +8,11 @@ import from shared.config { _get_settings }
 import from shared.contracts { StageResult, FixoraError }
 import from workflow.graph { _select_next_stage }
 import from workflow.transitions { _validate_result, _next_case_status }
+import from specialists.document { run_stage as _document_stage }
+import from specialists.vision { run_stage as _vision_stage }
+import from specialists.coverage { run_stage as _coverage_stage }
+import from specialists.repair_parts { run_stage as _repair_stage }
+import from specialists.resolution { run_stage as _resolution_stage }
 
 glob _test_handlers: dict[str, Callable[[dict[str, any]], StageResult]] = {};
 
@@ -19,15 +23,13 @@ def _set_test_handlers(handlers: dict[str, Callable[[dict[str, any]], StageResul
 
 def _load_handler(stage: str) -> Callable[[dict[str, any]], StageResult] {
     if stage in _test_handlers { return _test_handlers[stage]; }
-    try { module = importlib.import_module("specialists." + stage); }
-    except ImportError {
-        raise FixoraError("SPECIALIST_UNAVAILABLE", "The " + stage + " specialist or one of its dependencies is not ready.");
-    }
-    handler = getattr(module, "run_stage", None);
-    if not callable(handler) {
-        raise FixoraError("SPECIALIST_UNAVAILABLE", "Member B must implement run_stage(context) in specialists/" + stage + ".jac.");
-    }
-    return handler as Callable[[dict[str, any]], StageResult];
+    # Use Jac imports consistently: mixing importlib and Jac aliases can load
+    # distinct StageResult classes when the test/runtime module cache is reused.
+    handlers: dict[str, Callable[[dict[str, any]], StageResult]] = {
+        "document": _document_stage, "vision": _vision_stage, "coverage": _coverage_stage,
+        "repair_parts": _repair_stage, "resolution": _resolution_stage};
+    if stage not in handlers { raise FixoraError("SPECIALIST_UNAVAILABLE", "Unsupported specialist stage."); }
+    return handlers[stage];
 }
 
 def _stage_context(item: dict[str, any], stage: str) -> dict[str, any] {
@@ -44,6 +46,7 @@ def _stage_context(item: dict[str, any], stage: str) -> dict[str, any] {
     settings = _get_settings();
     return {"case_id": item["_id"], "description": item["description"],
         "claimed_model_id": item["claimed_model_id"], "stage": stage,
+        "owner_inspection": item.get("owner_inspection"),
         "assessment_id": item["active_assessment_id"],
         "evidence": [_evidence_view(record) for record in records], "attachments": attachments,
         "prior_results": item["assessment"]["stages"], "catalogue": _catalogue_snapshot(),

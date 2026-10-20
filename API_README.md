@@ -1,6 +1,6 @@
 # Fixora AI API reference
 
-This document describes the implemented Member A backend on **Jac 0.34.6 (Linux x86_64)**. Source of truth: `main.jac`, `server/`, `shared/`, `data/`, and `workflow/`.
+This document describes the Jac case/evidence backend. The current shared runtime is **Jac 0.34.13 (Linux/WSL)**. See [WHATSAPP.md](WHATSAPP.md) for the customer channel, cookie-authenticated owner API, worker and new owner operations. Source of truth: `main.jac`, `server/`, `shared/`, `data/`, and `workflow/`.
 
 The case/evidence APIs, coordinator and all five specialist modules are implemented. Seed the catalogue and configure a vision model/API key, or explicitly enable fixture demo mode. Without model configuration, a live assessment saves a `MODEL_NOT_CONFIGURED` error. See [MEMBER_B_HANDOFF.md](MEMBER_B_HANDOFF.md) for setup and detailed findings.
 
@@ -38,6 +38,8 @@ The server needs MongoDB settings and `FIXORA_ACCESS_TOKEN` in its environment o
 ```
 
 This token is the shop's demo access secret, not a Jac user JWT. Sending an `Authorization: Bearer ...` header alone does not satisfy this application's access check. Do not hardcode the secret in a shared client bundle; supply it at runtime.
+
+The current owner browser uses the cookie-authenticated gateway described in [WHATSAPP.md](WHATSAPP.md) and never receives this token. The direct API examples below are for trusted service/integration callers.
 
 The server reads `.env` without exporting its contents into the process. For hosted environment secrets, prefer `FIXORA_MONGODB_URI`; the application also accepts local `MONGODB_URI`. The prefixed name avoids also configuring Jac's independent graph-persistence backend. Database URIs are never client API parameters.
 
@@ -187,7 +189,7 @@ Example response data after dependencies are installed:
 ```json
 {
   "database": "connected",
-  "jac_baseline": "0.34.6",
+  "jac_baseline": "0.34.13",
   "specialists": {
     "document": "ready",
     "vision": "ready",
@@ -195,8 +197,8 @@ Example response data after dependencies are installed:
     "repair_parts": "ready",
     "resolution": "ready"
   },
-  "workflow": "client-advanced bounded stages",
-  "human_review": "deferred"
+  "workflow": "worker-advanced bounded stages",
+  "human_review": "owner_gateway"
 }
 ```
 

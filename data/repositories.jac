@@ -30,7 +30,10 @@ def _case_view(item: dict[str, any]) -> dict[str, any] {
         "revision": item["revision"], "created_at": item["created_at"],
         "updated_at": item["updated_at"], "evidence_ids": item["evidence_ids"],
         "active_assessment_id": item["active_assessment_id"],
-        "assessment": assessment};
+        "assessment": assessment, "review_status": item.get("review_status", "unreviewed"),
+        "review_assessment_id": item.get("review_assessment_id"),
+        "owner_inspection": item.get("owner_inspection"),
+        "messages": item.get("messages", []), "decisions": item.get("decisions", [])};
 }
 
 def _assert_revision(item: dict[str, any], expected_revision: int) {
@@ -108,7 +111,8 @@ def _update_case_record(case_id: str, expected_revision: int, description: str, 
         {"_id": case_id, "revision": expected_revision},
         {"$set": {"description": description, "claimed_model_id": claimed_model_id,
             "status": "draft", "assessment": None, "active_assessment_id": None,
-            "stage_lease": None, "updated_at": _now()}, "$inc": {"revision": 1}},
+            "stage_lease": None, "review_status": "unreviewed", "review_assessment_id": None,
+            "owner_inspection": None, "updated_at": _now()}, "$inc": {"revision": 1}},
         return_document=ReturnDocument.AFTER);
     if updated is None { raise FixoraError("STALE_REVISION", "Case changed during the update. Reload and retry."); }
     return updated as dict[str, any];
@@ -149,7 +153,8 @@ def _start_assessment_record(case_id: str, expected_revision: int, request_id: s
     updated = _get_database().cases.find_one_and_update(
         {"_id": case_id, "revision": expected_revision},
         {"$set": {"assessment": assessment, "active_assessment_id": assessment_id,
-            "stage_lease": None, "status": "processing", "updated_at": timestamp},
+            "stage_lease": None, "status": "processing", "review_status": "unreviewed",
+            "review_assessment_id": None, "updated_at": timestamp},
             "$inc": {"revision": 1, "assessment_number": 1}},
         return_document=ReturnDocument.AFTER);
     if updated is None { raise FixoraError("STALE_REVISION", "Case changed while starting. Reload and retry."); }

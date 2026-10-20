@@ -1,4 +1,4 @@
-# Narrow application-local workarounds for the pinned Jac 0.34.6 full server.
+# Narrow application-local workarounds for the verified Jac full servers.
 # No installed package is modified. Revalidate/remove when upgrading Jac.
 import importlib;
 import inspect;
@@ -56,7 +56,7 @@ def _reset_guest_root(self: any, username: str) -> str | None {
 }
 
 def _install_runtime_compat() {
-    if _installed or version("jaclang") != "0.34.6" { return; }
+    if _installed or version("jaclang") not in ["0.34.6", "0.34.13"] { return; }
     try { manager = importlib.import_module("jaclang.scale.identity.user_manager").JacScaleUserManager; }
     except ImportError { return; }
     console_class = importlib.import_module("jaclang.cli.console").JacConsole;

@@ -4,20 +4,38 @@
     "manufacturer": "Fixora Demo",
     "model_code": "FD-100",
     "display_name": "Fixora Demo Laptop 100",
-    "synthetic": true
+    "synthetic": true,
+    "quantity_available": 4,
+    "unit_price_minor": 18990000,
+    "currency": "LKR",
+    "aliases": [
+      "FD 100"
+    ]
   },
   {
     "_id": "demo-laptop-02",
     "manufacturer": "Fixora Demo",
     "model_code": "FD-200",
     "display_name": "Fixora Demo Laptop 200",
-    "synthetic": true
+    "synthetic": true,
+    "quantity_available": 0,
+    "unit_price_minor": 24990000,
+    "currency": "LKR",
+    "aliases": [
+      "FD 200"
+    ]
   },
   {
     "_id": "demo-laptop-03",
     "manufacturer": "Fixora Demo",
     "model_code": "FD-300",
     "display_name": "Fixora Demo Laptop 300",
-    "synthetic": true
+    "synthetic": true,
+    "quantity_available": 2,
+    "unit_price_minor": 31990000,
+    "currency": "LKR",
+    "aliases": [
+      "FD 300"
+    ]
   }
 ]

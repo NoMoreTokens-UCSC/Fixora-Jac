@@ -1,207 +1,114 @@
-// Run with scripts/test-ui.sh. Only an isolated, in-memory IndexedDB is used.
+// Run with scripts/test-ui.sh. No real HTTP, browser storage or credentials.
 import {beforeEach, expect, mock, test} from 'bun:test';
-import 'fake-indexeddb/auto';
-import {del, get, update} from 'idb-keyval';
+import React from 'react';
+import {renderToStaticMarkup} from 'react-dom/server';
 
-globalThis.window = {crypto: globalThis.crypto};
-// The gateway imports these emitted runtime symbols but does not use JSX/spawn.
-mock.module('@jac/runtime', () => ({__jacJsx() {}, __jacSpawn() {}}));
+globalThis.window = {crypto: globalThis.crypto, location: {protocol: 'http:', hostname: 'localhost'}, dispatchEvent: mock(() => {})};
+mock.module('@jac/runtime', () => ({...React, __jacJsx: (type, props, children = []) => React.createElement(type ?? React.Fragment, props,
+  ...children.flat(Infinity).map((child, index) => React.isValidElement(child) && child.key == null ? React.cloneElement(child, {key: index}) : child)), __jacSpawn() {}}));
+mock.module('framer-motion', () => ({motion: {span: ({initial, animate, transition, children, ...props}) => React.createElement('span', props, children)}, useReducedMotion: () => true}));
 const g = await import('./compiled/ui/gateway.js');
+const {DemoLogin} = await import('./compiled/ui/login.js');
+const {ShopDashboard} = await import('./compiled/ui/dashboard.js');
+const {CaseRecord, Assessment, PartAvailability} = await import('./compiled/ui/models.js');
+let calls, replies;
+const savedCase = () => ({id: 'a'.repeat(32), revision: 7, evidence: [{id: 'b'.repeat(32), kind: 'invoice'}],
+  messages: [], customer: 'Test customer', customer_id: '94770000001', title: 'Screen fault', model: 'FD-100', reference: 'test',
+  findings: {coverage: 'potentially covered', invoice: 'SAVED-INVOICE'}});
 
-beforeEach(async () => {
-  await del('fixora-demo-v1');
-  await g.refresh_cases();
+beforeEach(() => {
+  calls = []; replies = [];
+  globalThis.window.dispatchEvent.mockClear();
+  globalThis.fetch = mock(async (url, options = {}) => {
+    calls.push({url, ...options, body: options.body ? JSON.parse(options.body) : undefined});
+    const next = replies.shift() ?? {case: savedCase()};
+    return new Response(JSON.stringify(next.body ?? next), {status: next.status ?? 200, headers: {'Content-Type': 'application/json'}});
+  });
 });
 
-async function advance(c) {
-  let result = await g.advance_case(c.id, c.revision);
-  while (result.status === 'processing') result = await g.advance_case(result.id, result.revision);
-  return result;
+test('owner requests use cookie credentials and hydrate protected evidence URLs', async () => {
+  replies.push({cases: [savedCase()]});
+  const rows = await g.load_cases();
+  expect(calls[0].url).toBe('http://localhost:8011/owner/cases');
+  expect(calls[0].credentials).toBe('include');
+  expect(calls[0].cache).toBe('no-store');
+  expect(rows[0].evidence[0].preview).toContain(`/owner/cases/${rows[0].id}/evidence/`);
+  expect(g.assessment(rows[0]).invoice).toBe('SAVED-INVOICE');
+});
+
+test('owner review sends the displayed revision and a request ID without service credentials', async () => {
+  await g.review_case('a'.repeat(32), 7, 'approved', 'Inspected by the shop.');
+  const call = calls[0];
+  expect(call.url).toEndWith('/review');
+  expect(call.method).toBe('POST');
+  expect(call.body.expected_revision).toBe(7);
+  expect(call.body.request_id).toMatch(/^[A-Za-z0-9_-]{8,80}$/);
+  expect(call.body.action).toBe('approved');
+  expect(call.body.access_token).toBeUndefined();
+});
+
+test('assessment is queued by one request independently of browser stage advancement', async () => {
+  await g.advance_case('a'.repeat(32), 7);
+  expect(calls).toHaveLength(1);
+  expect(calls[0].url).toEndWith('/assess');
+});
+
+test('server conflicts preserve a useful error rather than inventing a local result', async () => {
+  replies.push({status: 409, body: {error: 'This case changed. Refresh it before saving.'}});
+  await expect(g.review_case('a'.repeat(32), 6, 'approved', 'Reason')).rejects.toThrow('This case changed');
+});
+
+test('expired sessions notify the UI to clear the private workspace', async () => {
+  replies.push({status: 401, body: {detail: 'Sign in to the owner workspace.'}});
+  await expect(g.load_cases()).rejects.toThrow('Sign in');
+  expect(window.dispatchEvent).toHaveBeenCalledTimes(1);
+  expect(window.dispatchEvent.mock.calls[0][0].type).toBe('fixora-session-expired');
+});
+
+test('internal notes and public replies use separate operations', async () => {
+  await g.save_internal_note('a'.repeat(32), 7, 'Private diagnosis');
+  await g.send_shop_message('a'.repeat(32), 7, 'Please visit the shop');
+  expect(calls[0].url).toEndWith('/note');
+  expect(calls[1].url).toEndWith('/message');
+  await expect(g.send_shop_message('a'.repeat(32), 7, '   ')).rejects.toThrow('Write a message');
+});
+
+test('retired customer browser mutations cannot create or change cases', async () => {
+  await expect(g.create_case('customer', 'model', 'scenario')).rejects.toThrow('WhatsApp');
+  await expect(g.send_message('id', 1, 'message')).rejects.toThrow('WhatsApp');
+  expect(calls).toHaveLength(0);
+});
+
+test('owner login renders without customer accounts or embedded demo credentials', () => {
+  const html = renderToStaticMarkup(React.createElement(DemoLogin, {dark: false, onTheme() {}, onLogin() {}}));
+  expect(html).toContain('Owner password');
+  expect(html).not.toContain('Fixora123!');
+  expect(html).not.toContain('customer@fixora.demo');
+  expect(html).not.toContain('Use demo credentials');
+});
+
+function dashboardProps(c, detail = false) {
+  return {cases: c.id ? [c] : [], c, detail, busy: false, tab: 'assessment', draft: '', error: '',
+    onTab() {}, onDraft() {}, onSelect() {}, onAction() {}, onEvidence() {}};
 }
 
-test('seven persisted sample cases and customer-scoped search', async () => {
-  expect((await g.load_cases()).length).toBe(7);
-  expect((await g.search_cases('', 'alex', false)).length).toBe(4);
-  expect((await g.search_cases('', 'jamie', false)).length).toBe(3);
-  expect((await g.search_cases('FX-1052', 'alex', false)).length).toBe(0);
-  expect((await g.search_cases('FX-1052', 'alex', true)).length).toBe(1);
+test('an empty owner inbox renders cleanly without seeded browser cases', () => {
+  const html = renderToStaticMarkup(React.createElement(ShopDashboard, dashboardProps(new CaseRecord())));
+  expect(html).toContain('Saved in MongoDB');
+  expect(html).toContain('No complaints found');
+  expect(html).not.toContain('Studio 14');
+  expect(html).not.toContain('Alex Morgan');
 });
 
-test('message validation preserves saved inputs and new cases require evidence', async () => {
-  let c = await g.create_case('alex', 'Studio 14', 'complete');
-  await expect(g.send_message(c.id, c.revision, '   ')).rejects.toThrow('Write a message');
-  c = await g.send_message(c.id, c.revision, 'Charging stops when the connector moves.');
-  await expect(g.advance_case(c.id, c.revision)).rejects.toThrow('Attach one invoice');
-  expect((await g.get_case(c.id)).description).toBe('Charging stops when the connector moves.');
-});
-
-test('upload type and size validation runs before image decoding', async () => {
-  await expect(g.read_image({type:'text/plain',size:10}, 'invoice', () => {})).rejects.toThrow('JPEG or PNG');
-  await expect(g.read_image({type:'image/png',size:5242881}, 'photo', () => {})).rejects.toThrow('5 MB');
-});
-
-test('shop replies publish to customer chat without changing assessment or decisions', async () => {
-  let c = await g.get_case('sample-auto');
-  const revision = c.revision;
-  const decisionCount = c.decisions.length;
-  await expect(g.send_shop_message(c.id, revision, '   ')).rejects.toThrow('Write a reply');
-  c = await g.send_shop_message(c.id, revision, 'Please bring your charger when you visit.');
-  await g.refresh_cases();
-  c = await g.get_case(c.id);
-  expect(c.messages.at(-1).role).toBe('shop');
-  expect(c.messages.at(-1).internal).toBe(false);
-  expect(c.messages.at(-1).text).toBe('Please bring your charger when you visit.');
-  expect(c.revision).toBe(revision);
-  expect(c.status).toBe('approved');
-  expect(c.decisions.length).toBe(decisionCount);
-});
-
-test('upload-to-assessment-to-owner-decision survives reloading', async () => {
-  const sample = await g.get_case('sample-complete');
-  let c = await g.create_case('alex', 'Studio 14', 'complete');
-  c = await g.send_message(c.id, c.revision, 'Charging stops when the connector moves.');
-  c = await g.attach_evidence(c.id, c.revision, {...sample.evidence[0],id:'test-invoice'});
-  await expect(g.attach_evidence(c.id, c.revision, {...sample.evidence[0],id:'extra'})).rejects.toThrow('maximum');
-  c = await g.attach_evidence(c.id, c.revision, {...sample.evidence[1],id:'test-photo'});
-  c = await advance(c);
-  expect(c.status).toBe('awaiting_approval');
-  c = await g.review_case(c.id, c.revision, 'approved', 'Supported sample repair confirmed.');
-  await g.refresh_cases();
-  const saved = await g.get_case(c.id);
-  expect(saved.status).toBe('approved');
-  expect(saved.evidence.length).toBe(2);
-  expect(saved.messages.at(-1).text).toContain('Supported sample repair confirmed.');
-});
-
-test('corrections invalidate current approval but preserve decision history', async () => {
-  let c = await g.get_case('sample-auto');
-  c = await g.correct_case(c.id,c.revision,'Studio 14','Confirmed from the product label.','shop');
-  expect(c.status).toBe('draft');
-  expect(c.decisions.length).toBe(1);
-  expect(c.messages.at(-1).role).toBe('shop');
-  expect(c.decisions[0].revision).not.toBe(c.revision);
-  await expect(g.review_case(c.id,c.revision,'approved','Too early')).rejects.toThrow('Assess the latest');
-});
-
-test('conflicts and uncertain inspection findings cannot be approved', async () => {
-  let c = await g.get_case('sample-conflict');
-  await expect(g.review_case(c.id,c.revision,'approved','Guess')).rejects.toThrow('Resolve the missing');
-  c = await g.correct_case(c.id,c.revision,'Pro 15','Model confirmed from label; customer explained mismatch.');
-  expect((await advance(c)).status).toBe('awaiting_approval');
-  let i = await g.get_case('sample-inspection');
-  i = await g.inspect_case(i.id,i.revision,'Further diagnostics required','Power fault not established.');
-  expect((await advance(i)).status).toBe('needs_inspection');
-  i = await g.get_case(i.id);
-  i = await g.inspect_case(i.id,i.revision,'Charging connector failure confirmed','Continuity test confirms connector fault.');
-  i = await advance(i);
-  expect(i.status).toBe('awaiting_approval');
-  expect(i.messages.filter(m=>m.internal).length).toBe(2);
-});
-
-test('timeout has a retry path; missing stock is not fabricated', async () => {
-  let c = await g.get_case('sample-failure');
-  c = await advance(c);
-  expect(c.status).toBe('awaiting_approval');
-  expect(g.assessment(await g.get_case('sample-no_stock')).stock).toBe(0);
-  const rejected = await g.get_case('sample-rejected');
-  expect(rejected.coverage).toBe('outside_period');
-  expect(g.assessment(rejected).next_action).toContain('paid repair');
-});
-
-test('atomic writes reject stale tabs without overwriting newer decisions', async () => {
-  const c = await g.get_case('sample-complete');
-  await update('fixora-demo-v1', rows => rows.map(row => row.id === c.id ? {...row,version:row.version+1,status:'needs_information'} : row));
-  await expect(g.review_case(c.id,c.revision,'approved','Stale tab')).rejects.toThrow('changed in another view');
-  const stored = await get('fixora-demo-v1');
-  expect(stored.find(row=>row.id===c.id).status).toBe('needs_information');
-  expect(stored.find(row=>row.id===c.id).decisions.length).toBe(0);
-});
-
-async function partCase(scenario, model = 'Studio 14') {
-  const sample = await g.get_case('sample-complete');
-  let c = await g.create_case('alex', model, scenario);
-  c = await g.send_message(c.id, c.revision, scenario === 'missing_charger' ? 'My charger is missing. Can I get a compatible one from the shop?' : 'Please check a replacement part for this laptop.');
-  c = await g.attach_evidence(c.id, c.revision, {...sample.evidence[0],id:'invoice-'+c.id});
-  c = await g.attach_evidence(c.id, c.revision, {...sample.evidence[1],id:'photo-'+c.id});
-  return advance(c);
-}
-
-test('missing charger automatically publishes a compatible shop offer and reload retains it', async () => {
-  let c = await partCase('missing_charger');
-  expect(c.availability.sku).toBe('FX-AC14');
-  expect(c.availability.status).toBe('in_stock');
-  expect(c.availability.unit_minor).toBe(6000);
-  expect(c.availability.labour_minor).toBe(0);
-  expect(c.coverage).toBe('needs_review');
-  const published = c.messages.find(m=>m.id===c.availability.message_id);
-  expect(published.text).toContain('available from our shop');
-  expect(published.text).toContain('No stock is reserved');
-  expect(published.revision).toBe(c.revision);
-  await g.refresh_cases();
-  c = await g.get_case(c.id);
-  expect(c.availability.message_id).toBe(published.id);
-});
-
-test('part checks are model-specific and repeated refreshes do not duplicate messages', async () => {
-  let c = await partCase('replacement','Pro 15');
-  expect(c.availability.sku).toBe('FX-CH15');
-  expect(c.availability.unit_minor).toBe(5500);
-  const id = c.availability.message_id;
-  c = await g.check_parts(c.id,c.revision);
-  c = await g.check_parts(c.id,c.revision);
-  expect(c.availability.message_id).toBe(id);
-  expect(c.messages.filter(m=>m.kind.startsWith('availability:')).length).toBe(1);
-  expect(c.decisions.length).toBe(0);
-});
-
-test('out-of-stock and uncertain matches never claim shop availability', async () => {
-  const out = await partCase('no_stock');
-  expect(out.availability.status).toBe('out_of_stock');
-  expect(out.availability.stock).toBe(0);
-  expect(out.messages.some(m=>m.text.includes('is available from our shop'))).toBe(false);
-  let unknown = await partCase('uncertain_compatibility');
-  expect(unknown.availability.compatibility).toBe('unknown');
-  expect(unknown.availability.sku).toBe('');
-  expect(unknown.messages.some(m=>m.text.includes('is available from our shop'))).toBe(false);
-  unknown = await g.correct_case(unknown.id,unknown.revision,'Studio 14','Model and matching fictional charger specification confirmed from label.');
-  unknown = await advance(unknown);
-  expect(unknown.availability.status).toBe('in_stock');
-});
-
-test('inventory lookup failure can retry without changing warranty decision state', async () => {
-  let c = await partCase('inventory_failure');
-  expect(c.status).toBe('awaiting_approval');
-  expect(c.availability.status).toBe('error');
-  expect(c.availability.message_id).toBe('');
-  const rev = c.revision;
-  c = await g.check_parts(c.id,c.revision,true);
-  expect(c.availability.status).toBe('in_stock');
-  expect(c.revision).toBe(rev);
-  expect(c.status).toBe('awaiting_approval');
-  expect(c.decisions.length).toBe(0);
-});
-
-test('correction invalidates availability and preserves revision-tagged earlier offers', async () => {
-  let c = await partCase('replacement');
-  const oldRevision = c.revision;
-  const oldMessage = c.availability.message_id;
-  c = await g.correct_case(c.id,c.revision,'Air 13','Confirmed Air 13 instead of Studio 14.');
-  expect(c.availability.revision).toBe(oldRevision);
-  expect(c.availability.revision).not.toBe(c.revision);
-  await expect(g.check_parts(c.id,c.revision)).rejects.toThrow('assess the current');
-  c = await advance(c);
-  expect(c.availability.sku).toBe('FX-CH13');
-  expect(c.availability.revision).toBe(c.revision);
-  expect(c.availability.message_id).not.toBe(oldMessage);
-  expect(c.messages.find(m=>m.id===oldMessage).revision).toBe(oldRevision);
-});
-
-test('legacy records without availability or message tags load without losing saved content', async () => {
-  await update('fixora-demo-v1',rows=>rows.map(row=>{ const {availability,...old}=row; old.messages=old.messages.map(({kind,revision,...m})=>m); return old; }));
-  const rows = await g.refresh_cases();
-  expect(rows.length).toBe(7);
-  expect(rows[0].availability.status).toBe('unchecked');
-  expect(rows[0].messages[0].text).toContain('Hi Alex');
-  const c = await g.check_parts(rows[0].id,rows[0].revision);
-  expect(c.availability.status).toBe('in_stock');
+test('owner findings render saved extraction, catalogue prices and currency', () => {
+  const c = new CaseRecord({...savedCase(), stage: 5, assessed_revision: 7, status: 'awaiting_approval', assessment_status: 'completed',
+    analysis_mode: 'Recorded fixture extraction', findings: new Assessment({invoice: 'SAVED-INVOICE', invoice_total: 'LKR 1200.00'}),
+    availability: new PartAvailability({revision: 7, status: 'in_stock', compatibility: 'confirmed', part_name: 'Saved display part',
+      sku: 'SAVED-SKU', stock: 2, unit_minor: 1500, labour_minor: 350, currency: 'LKR'})});
+  const html = renderToStaticMarkup(React.createElement(ShopDashboard, dashboardProps(c, true)));
+  expect(html).toContain('SAVED-INVOICE');
+  expect(html).toContain('SAVED-SKU');
+  expect(html).toContain('LKR 18.50');
+  expect(html).not.toContain('USD 899.00');
+  expect(html).toContain('Recorded fixture extraction');
 });

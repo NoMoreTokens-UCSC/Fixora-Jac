@@ -26,7 +26,7 @@ def _decode_image(content_base64: str) -> dict[str, any] {
     try {
         image = Image.open(io.BytesIO(raw));
         image_format = image.format;
-        if image_format not in ["PNG", "JPEG"] or image.width * image.height > 25000000 {
+        if image_format not in ["PNG", "JPEG"] or (image.width as int) * (image.height as int) > 25000000 {
             image.close();
             raise FixoraError("VALIDATION_ERROR", "Use a JPEG/PNG image with at most 25 million pixels.");
         }
@@ -78,7 +78,8 @@ def _upload_image(case_id: str, expected_revision: int, kind: str, filename: str
         updated = database.cases.find_one_and_update({"_id": case_id, "revision": expected_revision},
             {"$push": {"evidence_ids": evidence_id}, "$inc": {"revision": 1},
                 "$set": {"status": "draft", "assessment": None, "active_assessment_id": None,
-                    "stage_lease": None, "updated_at": _now()}}, return_document=ReturnDocument.AFTER);
+                    "stage_lease": None, "review_status": "unreviewed", "review_assessment_id": None,
+                    "owner_inspection": None, "updated_at": _now()}}, return_document=ReturnDocument.AFTER);
         if updated is None { raise FixoraError("STALE_REVISION", "Case changed during upload. Reload and retry."); }
     } except DuplicateKeyError {
         bucket.delete(file_id);
@@ -117,7 +118,8 @@ def _remove_image(case_id: str, evidence_id: str, expected_revision: int) -> dic
     updated = _get_database().cases.find_one_and_update({"_id": case_id, "revision": expected_revision},
         {"$pull": {"evidence_ids": evidence_id}, "$inc": {"revision": 1},
             "$set": {"status": "draft", "assessment": None, "active_assessment_id": None,
-                "stage_lease": None, "updated_at": _now()}}, return_document=ReturnDocument.AFTER);
+                "stage_lease": None, "review_status": "unreviewed", "review_assessment_id": None,
+                "owner_inspection": None, "updated_at": _now()}}, return_document=ReturnDocument.AFTER);
     if updated is None { raise FixoraError("STALE_REVISION", "Case changed while removing evidence. Reload and retry."); }
     return updated as dict[str, any];
 }

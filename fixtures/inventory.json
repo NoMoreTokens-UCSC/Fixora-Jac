@@ -9,7 +9,13 @@
     "quantity_available": 3,
     "unit_price_minor": 2400000,
     "currency": "LKR",
-    "synthetic": true
+    "synthetic": true,
+    "display_name": "Display panel",
+    "aliases": [
+      "screen",
+      "display"
+    ],
+    "category": "part"
   },
   {
     "_id": "demo-stock-1-hinge_assembly",
@@ -21,7 +27,12 @@
     "quantity_available": 0,
     "unit_price_minor": 850000,
     "currency": "LKR",
-    "synthetic": true
+    "synthetic": true,
+    "display_name": "Hinge assembly",
+    "aliases": [
+      "hinge"
+    ],
+    "category": "part"
   },
   {
     "_id": "demo-stock-1-keyboard",
@@ -33,7 +44,12 @@
     "quantity_available": 2,
     "unit_price_minor": 950000,
     "currency": "LKR",
-    "synthetic": true
+    "synthetic": true,
+    "display_name": "Keyboard",
+    "aliases": [
+      "keyboard"
+    ],
+    "category": "part"
   },
   {
     "_id": "demo-stock-2-display_panel",
@@ -45,7 +61,13 @@
     "quantity_available": 3,
     "unit_price_minor": 2400000,
     "currency": "LKR",
-    "synthetic": true
+    "synthetic": true,
+    "display_name": "Display panel",
+    "aliases": [
+      "screen",
+      "display"
+    ],
+    "category": "part"
   },
   {
     "_id": "demo-stock-2-hinge_assembly",
@@ -57,7 +79,12 @@
     "quantity_available": 0,
     "unit_price_minor": 850000,
     "currency": "LKR",
-    "synthetic": true
+    "synthetic": true,
+    "display_name": "Hinge assembly",
+    "aliases": [
+      "hinge"
+    ],
+    "category": "part"
   },
   {
     "_id": "demo-stock-2-keyboard",
@@ -69,7 +96,12 @@
     "quantity_available": 2,
     "unit_price_minor": 950000,
     "currency": "LKR",
-    "synthetic": true
+    "synthetic": true,
+    "display_name": "Keyboard",
+    "aliases": [
+      "keyboard"
+    ],
+    "category": "part"
   },
   {
     "_id": "demo-stock-3-display_panel",
@@ -81,7 +113,13 @@
     "quantity_available": 0,
     "unit_price_minor": 2400000,
     "currency": "LKR",
-    "synthetic": true
+    "synthetic": true,
+    "display_name": "Display panel",
+    "aliases": [
+      "screen",
+      "display"
+    ],
+    "category": "part"
   },
   {
     "_id": "demo-stock-3-hinge_assembly",
@@ -93,7 +131,12 @@
     "quantity_available": 0,
     "unit_price_minor": 850000,
     "currency": "LKR",
-    "synthetic": true
+    "synthetic": true,
+    "display_name": "Hinge assembly",
+    "aliases": [
+      "hinge"
+    ],
+    "category": "part"
   },
   {
     "_id": "demo-stock-3-keyboard",
@@ -104,6 +147,31 @@
     ],
     "quantity_available": 2,
     "unit_price_minor": 950000,
+    "currency": "LKR",
+    "synthetic": true,
+    "display_name": "Keyboard",
+    "aliases": [
+      "keyboard"
+    ],
+    "category": "part"
+  },
+  {
+    "_id": "demo-accessory-mouse",
+    "sku": "DEMO-USB-MOUSE",
+    "display_name": "Fixora Demo USB Mouse",
+    "aliases": [
+      "mouse",
+      "wired mouse"
+    ],
+    "category": "accessory",
+    "part_type": "usb_mouse",
+    "compatible_model_ids": [
+      "demo-laptop-01",
+      "demo-laptop-02",
+      "demo-laptop-03"
+    ],
+    "quantity_available": 6,
+    "unit_price_minor": 250000,
     "currency": "LKR",
     "synthetic": true
   }

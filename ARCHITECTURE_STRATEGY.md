@@ -1,3 +1,5 @@
+> Historical design document. The current WhatsApp customer channel and private owner dashboard supersede earlier customer-web and browser-local behavior. See [WHATSAPP.md](WHATSAPP.md).
+
 # Fixora AI — Architecture and Delivery Strategy
 
 Status: backend implementation plan with a runnable browser-local UI prototype; see DEVELOPMENT.md.

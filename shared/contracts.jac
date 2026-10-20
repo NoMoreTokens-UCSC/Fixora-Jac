@@ -1,17 +1,17 @@
 # Owner: Member A. Shared wire and specialist contracts; no database handles.
 
-obj ErrorInfo {
+sv obj ErrorInfo {
     has code: str;
     has message: str;
 }
 
-obj ApiResult {
+sv obj ApiResult {
     has ok: bool;
     has data: dict[str, any] = {};
     has error: ErrorInfo | None = None;
 }
 
-obj FixoraError(Exception) {
+sv obj FixoraError(Exception) {
     has code: str;
     has message: str;
 
@@ -64,7 +64,7 @@ obj RepairOption {
     has provisional: bool = True;
 }
 
-obj StageResult {
+sv obj StageResult {
     has stage: str;
     has status: str;
     has findings: dict[str, any] = {};

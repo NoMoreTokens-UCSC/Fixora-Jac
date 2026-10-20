@@ -49,6 +49,14 @@ def run_stage(context: dict[str, any]) -> StageResult {
             "An unreadable product label leaves product identity unverified."],
         "identity_verified": `any(bool(output.model_code) for output in outputs)};
     if conflicts { return _blocked("vision", "Product identity conflicts with the invoice.", refs, conflicts=conflicts, findings=findings); }
+    # Only authenticated owner operations can populate this field. A customer
+    # message or an image instruction can never establish a confirmed diagnosis.
+    inspection = context.get("owner_inspection");
+    if inspection and inspection.get("diagnosis_code") in ["screen_crack", "hinge_damage", "keyboard_damage"] {
+        observations.append({"category": inspection["diagnosis_code"], "description": inspection["notes"],
+            "severity": "unknown", "evidence_refs": refs, "provisional": False, "source": "owner_inspection"});
+        findings["owner_inspection"] = inspection;
+    }
     description = _normalize(context["description"]);
     hidden_fault = `any(phrase in description for phrase in ["no power", "no_power", "not power", "won't turn on", "will not turn on", "not turning on", "overheat", "charging", "battery", "liquid", "water", "burn", "smoke"]);
     actionable = `any(row["category"] in ["screen_crack", "hinge_damage", "keyboard_damage"] for row in observations);

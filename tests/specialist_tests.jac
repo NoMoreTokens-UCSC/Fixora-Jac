@@ -282,3 +282,18 @@ test "three scenarios traverse real specialists and preserve inventory" {
     }
     os.environ["FIXORA_DEMO_MODE"] = "false";
 }
+
+test "owner inspection can support catalogue repairs but cannot bypass identity or hidden faults" {
+    context = _photo_context("product-scratch.png");
+    context["description"] = "The display needs repair after physical inspection.";
+    context["owner_inspection"] = {"diagnosis_code": "screen_crack", "notes": "Confirmed damaged display during shop inspection."};
+    result = vision_stage(context);
+    assert result.status == "completed";
+    observations = result.findings["observations"];
+    assert observations[-1]["source"] == "owner_inspection" and not observations[-1]["provisional"];
+    context["description"] = "Laptop will not power on.";
+    assert vision_stage(context).next_action == "needs_inspection";
+    context = _photo_context("product-mismatch.png");
+    context["owner_inspection"] = {"diagnosis_code": "screen_crack", "notes": "Inspected display"};
+    assert vision_stage(context).next_action == "needs_information";
+}

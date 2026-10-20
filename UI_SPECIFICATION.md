@@ -1,3 +1,5 @@
+> Historical design document. The current WhatsApp customer channel and private owner dashboard supersede earlier customer-web and browser-local behavior. See [WHATSAPP.md](WHATSAPP.md).
+
 # Fixora UI specification: customer chat and shop dashboard
 
 Status: interactive browser-local UI prototype implemented. See DEVELOPMENT.md for execution, tests, and the remaining live backend integration. The requirements below also describe the eventual production access and persistence boundaries.

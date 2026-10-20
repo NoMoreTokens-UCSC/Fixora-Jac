@@ -7,6 +7,7 @@ cl obj:pub Message {
     has internal: bool = False;
     has kind: str = "";
     has revision: int = 0;
+    has delivery: str = "";
 }
 
 cl obj:pub InventoryPart {
@@ -20,7 +21,7 @@ cl obj:pub InventoryPart {
 
 cl obj:pub PartAvailability {
     has revision: int = 0;
-    has requirement: str = "Replacement charging connector";
+    has requirement: str = "No saved repair option";
     has sku: str = "";
     has part_name: str = "";
     has compatibility: str = "unknown";
@@ -34,6 +35,7 @@ cl obj:pub PartAvailability {
     has message_id: str = "";
     has publication_key: str = "";
     has attempts: int = 0;
+    has currency: str = "";
 }
 
 cl obj:pub Evidence {
@@ -58,12 +60,12 @@ cl obj:pub Decision {
 cl obj:pub CaseRecord {
     has id: str = "";
     has reference: str = "";
-    has customer: str = "Alex Morgan";
-    has customer_id: str = "alex";
+    has customer: str = "";
+    has customer_id: str = "";
     has title: str = "New laptop complaint";
     has description: str = "";
-    has model: str = "Studio 14";
-    has scenario: str = "complete";
+    has model: str = "Unconfirmed";
+    has scenario: str = "live";
     has status: str = "draft";
     has coverage: str = "needs_review";
     has stage: int = 0;
@@ -80,24 +82,30 @@ cl obj:pub CaseRecord {
     has retried: bool = False;
     has updated_at: str = "";
     has availability: PartAvailability = PartAvailability();
+    has findings: Assessment = Assessment();
+    has analysis_mode: str = "No assessment yet";
+    has assessment_status: str = "draft";
+    has review_status: str = "unreviewed";
 }
 
 cl obj:pub Assessment {
-    has purchase_date: str = "2026-03-12";
-    has expiry_date: str = "2027-03-12";
-    has invoice: str = "INV-DEMO-1048";
-    has serial: str = "FX-DEMO-0142";
-    has seller: str = "Fixora laptop shop (fictional)";
-    has policy: str = "Demo shop policy v1 · W-01 / R-02";
-    has eligibility: str = "Within the sample 12-month period";
-    has coverage: str = "Potentially covered";
-    has rationale: str = "The sample purchase is within the warranty period. An owner must confirm the supported repair condition.";
-    has observation: str = "The sample product label identifies the model. The complaint reports intermittent charging; these images cannot establish an internal electrical fault.";
-    has limitation: str = "Fixture findings only. Your uploaded images are previews and have not been analysed by AI.";
-    has repair: str = "Charging connector inspection / replacement";
-    has part: str = "FX-CH14 · Studio 14 charging connector";
-    has stock: int = 4;
-    has part_minor: int = 4500;
-    has labour_minor: int = 2500;
-    has next_action: str = "The shop will review the evidence and proposal.";
+    has purchase_date: str = "Unknown";
+    has expiry_date: str = "Unknown";
+    has invoice: str = "Unknown";
+    has serial: str = "Unknown";
+    has seller: str = "Unknown";
+    has policy: str = "Not evaluated";
+    has eligibility: str = "Not evaluated";
+    has coverage: str = "Not evaluated";
+    has rationale: str = "No assessment for the current inputs.";
+    has observation: str = "No saved observations.";
+    has limitation: str = "A diagnosis has not been confirmed.";
+    has repair: str = "No repair proposal";
+    has part: str = "";
+    has stock: int = 0;
+    has part_minor: int = 0;
+    has labour_minor: int = 0;
+    has next_action: str = "Await customer evidence.";
+    has invoice_total: str = "Unknown";
+    has currency: str = "";
 }

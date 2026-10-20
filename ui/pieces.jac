@@ -22,8 +22,8 @@ def:pub CopyButton(text: str, label: str = "Copy response") -> JsxElement {
 
 def:pub StageActivity(c: CaseRecord) -> JsxElement {
     stages = ["Document", "Vision", "Coverage", "Repair & parts", "Resolution"];
-    return <section className="stage-panel" aria-label="Sample assessment stages">
-        <div className="section-eyebrow"><span>ASSESSMENT ACTIVITY</span><span>{"Sample · " + str(c.stage) + "/5 stages"}</span></div>
+    return <section className="stage-panel" aria-label="Assessment stages">
+        <div className="section-eyebrow"><span>ASSESSMENT ACTIVITY</span><span>{"Saved · " + str(c.stage) + "/5 stages"}</span></div>
         <ol className="stage-list">
             {for (i, name) in enumerate(stages) {
                 <li key={name} className={"stage-item " + ("stage-done" if i < c.stage else "")}>
@@ -32,8 +32,8 @@ def:pub StageActivity(c: CaseRecord) -> JsxElement {
                 </li>
             }}
         </ol>
-        {if c.status == "failed" { <p className="inline-error"><AlertCircle size={14}/>Sample stage timed out. Your evidence is saved; retry to resume.</p> }}
-        {if c.status == "processing" { <p className="muted small"><Clock size={13}/>Ready for the next bounded sample stage. Resume to continue.</p> }}
+        {if c.status == "failed" { <p className="inline-error"><AlertCircle size={14}/>Processing failed. Evidence is saved; retry to resume.</p> }}
+        {if c.status == "processing" { <p className="muted small"><Clock size={13}/>The worker is processing this assessment. Results update automatically.</p> }}
     </section>;
 }
 

@@ -66,8 +66,8 @@ def _platform_payload() -> dict[str, any] {
         try { _load_handler(stage); specialists[stage] = "ready"; }
         except Exception { specialists[stage] = "unavailable"; }
     }
-    return {"database": "connected", "jac_baseline": "0.34.6", "specialists": specialists,
-        "workflow": "client-advanced bounded stages", "human_review": "deferred"};
+    return {"database": "connected", "jac_baseline": "0.34.13", "specialists": specialists,
+        "workflow": "worker-advanced bounded stages", "human_review": "owner_gateway"};
 }
 
 def:pub platform_status(access_token: str = "") -> ApiResult {
